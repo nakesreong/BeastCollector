@@ -1,0 +1,17 @@
+## Interface: 120001, 110207, 110105
+## Title: |cff00ff96Beast|r|cffffaa00Collector|r
+## Notes: Коллекция 3D-моделей приручаемых зверей охотника в стиле Гардероба (61 семейство, 2635 моделей, способности, координаты и навигация)
+## Author: Anya & Tiger
+## Version: 1.0.0
+## SavedVariables: BeastCollectorDB
+## IconTexture: Interface\ICONS\Ability_Hunter_BeastMastery
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+Libs\HunterPetsDB-1.0\HunterPetsDB-1.0.lua
+
+BeastDB.lua
+Core.lua
+UI.lua
