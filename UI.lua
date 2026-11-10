@@ -20,7 +20,6 @@ local LDBIcon = LibStub and LibStub("LibDBIcon-1.0", true)
 local GRID_COLS = 6
 local GRID_ROWS = 3
 local PAGE_SIZE = GRID_COLS * GRID_ROWS -- 18 моделей на страницу (как в Гардеробе!)
-local FAMILY_STRIP_VISIBLE = 15        -- 15 круглых кнопок в полосе одновременно
 
 local ICON_READY = "|TInterface\\RaidFrame\\ReadyCheck-Ready:14:14:0:0|t"
 local ICON_STAR  = "|TInterface\\COMMON\\ReputationStar:13:13:0:0:32:32:0:16:0:16|t"
@@ -29,19 +28,67 @@ local ICON_BOOK  = "|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t"
 local ICON_PIN   = "|TInterface\\ICONS\\Ability_Spy:14:14:0:0|t"
 
 local ui = {
+    selectedSpec = "ALL",
     selectedFamily = "ALL",
     selectedRole = "ALL",
     onlyUncollected = false,
     searchText = "",
     currentPage = 1,
     totalPages = 1,
-    familyOffset = 0,
-    allFamilyDefs = {},
     selectedBeast = nil,
     filteredBeasts = {},
-    familyButtons = {},
+    specGroups = {},
     gridCards = {},
 }
+
+local SHORT_FAMILY_NAMES = {
+    clefthoof       = "Копытни",
+    raptor          = "Ящеры",
+    feathermane     = "Шерстоперые",
+    lesserdragonkin = "Малые дракониды",
+    whiptail        = "Хлыстохвосты",
+    carapid         = "Панцирники",
+    bat             = "Летучие мыши",
+    birdofprey      = "Хищные птицы",
+    boar            = "Вепри",
+    carrionbird     = "Падальщики",
+    cat             = "Кошки и Тигры",
+    fox             = "Лисицы",
+    gruffhorn       = "Грубороги",
+    hopper          = "Прыгуны и Жабы",
+    monkey          = "Обезьяны",
+    oxen            = "Быки и Яки",
+    ray             = "Скаты Пустоты",
+    riverbeast      = "Речные чудища",
+    scalehide       = "Чешуешкурые",
+    tallstrider     = "Долгоноги",
+    waterfowl       = "Чирки и Журавли",
+    lizard          = "Ящерицы",
+}
+
+local function GetShortFamilyName(fam)
+    if not fam then return "" end
+    if SHORT_FAMILY_NAMES[fam.id] then
+        return SHORT_FAMILY_NAMES[fam.id]
+    end
+    local clean = string.gsub(fam.name or "", "%s*%b()", "")
+    return strtrim(clean)
+end
+
+local function GetFamilyDropdownText(fam)
+    if not fam then return "" end
+    local base = GetShortFamilyName(fam)
+    local icStr = fam.icon and ("|T" .. tostring(fam.icon) .. ":14:14:0:0:64:64:5:59:5:59|t ") or ""
+    local suffix = ""
+    if fam.exotic and fam.tome then
+        suffix = " |cff00ccff(Экзот, Фолиант)|r"
+    elseif fam.exotic then
+        suffix = " |cff00ccff(Экзот)|r"
+    elseif fam.tome then
+        suffix = " |cffffaa00(Фолиант)|r"
+    end
+    return icStr .. base .. suffix
+end
 
 -- ============================================================================
 -- БАЗОВЫЕ ХЕЛПЕРЫ ОФОРМЛЕНИЯ В СТИЛЕ ГАРДЕРОБА BLIZZARD / ELVUI
@@ -252,18 +299,32 @@ function addon:ShowCopyLinkPopup(url, titleText)
 end
 
 -- ============================================================================
--- СПИСОК БОЕВЫХ РОЛЕЙ ДЛЯ ФИЛЬТРА (Только родные иконки WoW, без эмодзи [])
+-- СПИСОК ФИЛЬТРОВ ПО ТРЕЙТАМ И АБИЛКАМ (Отдельная выпадашка слева)
 -- ============================================================================
 local ROLE_FILTERS = {
-    { id = "ALL",      label = "Все звери",                                                              desc = "Показать все модели выбранного семейства" },
-    { id = "BL",       label = "|TInterface\\ICONS\\Spell_Nature_BloodLust:14:14:0:0|t БЛ (Свирепость)", desc = "Питомцы с Древней истерией (+30% хасты рейду) и +10% Leech" },
-    { id = "MORTAL",   label = "|TInterface\\ICONS\\Ability_Warrior_SavageBlow:14:14:0:0|t Срез хила -50%", desc = "Питомцы со Смертельным ранением (Дьявозавры, Скорпиды, Ящеры, Гиены, Дикороги, Осы)" },
-    { id = "DISPEL",   label = "|TInterface\\ICONS\\Spell_Nature_NullifyDisease:14:14:0:0|t Диспел магии", desc = "Питомцы, снимающие 1 эффект магии и 1 исступление с врага (Скаты, Олени, Духи зверя, Нетопыри, Мотыльки, Чирки)" },
-    { id = "TANK",     label = "|TInterface\\ICONS\\Ability_Defend:14:14:0:0|t Танк и Сейв",             desc = "Лучшие питомцы для выживания и танкования (Копытни, Чешуешкурые, Черепахи, Медведи, Механизмы)" },
-    { id = "CUNNING",  label = "|TInterface\\ICONS\\Ability_Hunter_MastersCall:14:14:0:0|t Свобода (Хитрость)", desc = "Питомцы с Приказом хозяина (снятие рутов) и +8% скорости бега" },
-    { id = "EXOTIC",   label = "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:14:14:0:0|t Экзотика (БМ)", desc = "Экзотические семейства только для специализации Повелитель Зверей" },
-    { id = "TOME",     label = "|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t Спец-фолианты",         desc = "Семейства, требующие изучения особых книг приручения" },
+    { id = "ALL",          short = "Трейты и абилки",                                                        label = "Все трейты и абилки",                                                                  desc = "Показать всех зверей без фильтра по боевым способностям и трейтам." },
+    { id = "BL",           short = "|TInterface\\ICONS\\Spell_Nature_BloodLust:13:13:0:0|t Героизм / БЛ",     label = "|TInterface\\ICONS\\Spell_Nature_BloodLust:14:14:0:0|t Героизм / БЛ (+10% Leech)",     desc = "Трейт Свирепости: Древняя истерия (+30% скорости боя группе/рейду на 40 сек) и +10% к самоисцелению." },
+    { id = "TENACITY_DEF", short = "|T236161:13:13:0:0|t Сейв -20% и +5% ХП",                                label = "|T236161:14:14:0:0|t Личный сейв -20% и +5% ХП",                                       desc = "Трейт Упорства: Выживает сильнейший (снижает получаемый урон на 20% на 6 сек) и +5% к запасу здоровья." },
+    { id = "CUNNING_FREE", short = "|T236160:13:13:0:0|t Свобода и +8% бега",                                label = "|T236160:14:14:0:0|t Приказ хозяина и +8% бега",                                       desc = "Трейт Хитрости: снимает все эффекты обездвиживания и замедления с цели и даёт +8% к скорости бега." },
+    { id = "DISPEL",       short = "|TInterface\\ICONS\\Spell_Nature_NullifyDisease:13:13:0:0|t Диспел магии", label = "|TInterface\\ICONS\\Spell_Nature_NullifyDisease:14:14:0:0|t Диспел магии + исступления", desc = "Абилка семейства: снимает с врага 1 магический бафф и 1 эффект исступления (Духи зверя, Скаты, Олени, Нетопыри, Мотыльки, Чирки, Водомерки, Спороскаты)." },
+    { id = "MORTAL",       short = "|TInterface\\ICONS\\Ability_Warrior_SavageBlow:13:13:0:0|t Срез хила -50%", label = "|TInterface\\ICONS\\Ability_Warrior_SavageBlow:14:14:0:0|t Смертельные раны (-50% хила)", desc = "Абилка семейства: уменьшает получаемое целью исцеление на 50% (Дьявозавры, Скорпиды, Ящеры, Гиены, Дикороги, Осы, Падальщики, Опустошители, Речные чудища, Грызуны, Гидры, Ящерицы)." },
+    { id = "TANK",         short = "|TInterface\\ICONS\\Ability_Defend:13:13:0:0|t Танко-щит -50%",           label = "|TInterface\\ICONS\\Ability_Defend:14:14:0:0|t Танко-щит (-50% урона по пету)",       desc = "Абилка семейства: мощное снижение урона по самому питомцу на 40–60% (Копытни, Чешуешкурые, Черепахи, Медведи, Жуки, Механизмы, Гончие недр, Панцирники, Кабаны, Гориллы, Мамонты)." },
+    { id = "SLOW",         short = "|TInterface\\ICONS\\Spell_Frost_ChainsOfIce:13:13:0:0|t Замедление -50%", label = "|TInterface\\ICONS\\Spell_Frost_ChainsOfIce:14:14:0:0|t Замедление врага (-50% бега)",  desc = "Абилка семейства: замедляет скорость передвижения цели на 50% (Волки, Пауки, Собаки, Крабы, Кроколиски, Хищные птицы, Прыгуаны, Химеры, Черви, Акиры)." },
+    { id = "DODGE",        short = "|TInterface\\ICONS\\Spell_Nature_Invisibilty:13:13:0:0|t Уклонение +30%", label = "|TInterface\\ICONS\\Spell_Nature_Invisibilty:14:14:0:0|t Уклонение пета +30% / Стелс",  desc = "Абилка семейства: повышает уклонение питомца на 30% (Кошки, Лисицы, Змеи, Обезьяны, Дракондоры, Шерстоперые, Прыгуны, Крылатые змеи)." },
+    { id = "HEAL",         short = "|T236165:13:13:0:0|t Подхил (Дух зверя)",                                label = "|T236165:14:14:0:0|t Духовное исцеление (Подхил)",                                     desc = "Уникальная способность Духов зверя: лечит выбранного союзника или самого охотника и позволяет ходить в стелсе." },
+    { id = "EXOTIC",       short = "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:13:13:0:0|t Экзотика (БМ)", label = "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:14:14:0:0|t Экзотика (только БМ)",     desc = "Экзотические семейства, доступные только специализации «Повелитель Зверей»." },
+    { id = "TOME",         short = "|TInterface\\ICONS\\INV_Misc_Book_09:13:13:0:0|t С фолиантом",            label = "|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t Требуется Фолиант приручения",        desc = "Семейства, требующие изучения особых книг приручения (Дикороги, Механизмы, Шерстоперые, Кровавые чудовища, Малые дракониды, Гаргоны)." },
+    { id = "RARE_ONLY",    short = ICON_STAR .. " Редкие и Секреты",                                         label = ICON_STAR .. " Только Редкие / Духи / Секретные",                                      desc = "Показать только рарников, секретных питомцев, боссов подземелий и Духов зверя." },
 }
+
+local SPEC_ORDER = { "FEROCITY", "CUNNING", "TENACITY" }
+
+local function CloseAllDropdowns()
+    if ui.roleMenu then ui.roleMenu:Hide() end
+    for _, sg in pairs(ui.specGroups or {}) do
+        if sg.menu then sg.menu:Hide() end
+    end
+end
 
 local RARITY_BADGES = {
     SPIRIT = { text = ICON_STAR .. " Дух Зверя", color = { 0.35, 0.85, 1.0 } },
@@ -427,28 +488,34 @@ function addon:InitUI()
         end
     end)
 
-    -- 4. Верхний ряд внутри полотна: слева дропдаун роли, справа — КРУГЛЫЕ КНОПКИ 61 СЕМЕЙСТВА!
+    -- 4. Верхний ряд внутри полотна:
+    --    Слева — отдельная выпадашка с фильтрами по трейтам и абилкам
+    --    Справа — кружок «Все» + 3 кружка классов питомцев (Свирепость, Хитрость, Упорство)
+    --             с отдельной выпадашкой семейств у каждого кружка!
     local filterBar = CreateFrame("Frame", nil, wardrobeCanvas)
     filterBar:SetPoint("TOPLEFT", wardrobeCanvas, "TOPLEFT", 12, -10)
     filterBar:SetPoint("TOPRIGHT", wardrobeCanvas, "TOPRIGHT", -12, -10)
     filterBar:SetHeight(36)
 
-    local roleDropdownBtn = CreateWardrobeButton(filterBar, 132, 26, "Все звери [v]", false)
+    local roleDropdownBtn = CreateWardrobeButton(filterBar, 184, 26, "Трейты и абилки [v]", false)
     roleDropdownBtn:SetPoint("LEFT", filterBar, "LEFT", 0, 0)
     ui.roleDropdownBtn = roleDropdownBtn
 
     local roleMenu = CreateFrame("Frame", nil, roleDropdownBtn, "BackdropTemplate")
-    roleMenu:SetSize(226, #ROLE_FILTERS * 24 + 8)
+    roleMenu:SetSize(284, #ROLE_FILTERS * 21 + 8)
     roleMenu:SetPoint("TOPLEFT", roleDropdownBtn, "BOTTOMLEFT", 0, -2)
     roleMenu:SetFrameStrata("FULLSCREEN_DIALOG")
-    ApplyBackdrop(roleMenu, 0.06, 0.06, 0.07, 0.98, 0.85, 0.68, 0.18, 1.0)
+    roleMenu:SetClampedToScreen(true)
+    ApplyBackdrop(roleMenu, 0.05, 0.05, 0.06, 0.99, 0.85, 0.68, 0.18, 1.0)
     roleMenu:Hide()
     ui.roleMenu = roleMenu
+    ui.roleMenuItems = {}
 
     for idx, rf in ipairs(ROLE_FILTERS) do
-        local item = CreateWardrobeButton(roleMenu, 218, 22, rf.label, false)
-        item:SetPoint("TOPLEFT", roleMenu, "TOPLEFT", 4, -4 - (idx - 1) * 24)
+        local item = CreateWardrobeButton(roleMenu, 276, 19, rf.label, false)
+        item:SetPoint("TOPLEFT", roleMenu, "TOPLEFT", 4, -4 - (idx - 1) * 21)
         item.label:SetJustifyH("LEFT")
+        item.roleID = rf.id
         item:SetScript("OnEnter", function(self)
             self:SetBackdropColor(0.24, 0.19, 0.08, 0.98)
             self:SetBackdropBorderColor(1.0, 0.82, 0.0, 1.0)
@@ -458,89 +525,45 @@ function addon:InitUI()
             GameTooltip:Show()
         end)
         item:SetScript("OnLeave", function(self)
-            self:SetBackdropColor(unpack(self.defaultBg))
-            self:SetBackdropBorderColor(unpack(self.defaultBorder))
+            if self.isActiveTab then
+                self:SetBackdropColor(0.22, 0.17, 0.06, 0.98)
+                self:SetBackdropBorderColor(1.0, 0.82, 0.0, 1.0)
+            else
+                self:SetBackdropColor(unpack(self.defaultBg))
+                self:SetBackdropBorderColor(unpack(self.defaultBorder))
+            end
             GameTooltip:Hide()
         end)
         item:SetScript("OnClick", function()
             ui.selectedRole = rf.id
             ui.currentPage = 1
-            roleMenu:Hide()
+            ui.selectedBeast = nil
+            CloseAllDropdowns()
             addon:RefreshUI()
         end)
+        ui.roleMenuItems[idx] = item
     end
 
     roleDropdownBtn:SetScript("OnClick", function(_, button)
         if button == "RightButton" then
             ui.selectedRole = "ALL"
             ui.currentPage = 1
-            roleMenu:Hide()
+            ui.selectedBeast = nil
+            CloseAllDropdowns()
             addon:RefreshUI()
         elseif roleMenu:IsShown() then
-            roleMenu:Hide()
+            CloseAllDropdowns()
         else
-            if ui.familyCatalogPopup then ui.familyCatalogPopup:Hide() end
+            CloseAllDropdowns()
             roleMenu:Show()
         end
     end)
 
-    -- Собираем список всех 62 пунктов (Все семейства + 61 семейство Petopia)
-    wipe(ui.allFamilyDefs)
-    table.insert(ui.allFamilyDefs, {
-        id = "ALL",
-        name = "Все семейства (61)",
-        icon = "Interface\\ICONS\\Ability_Hunter_BeastMastery",
-        familyDesc = "Показать все 2 635 приручаемых моделей во всех 61 семействах охотника.",
-    })
-    for _, fam in ipairs(addon.Families or {}) do
-        table.insert(ui.allFamilyDefs, fam)
-    end
-
-    -- Кнопка быстрой палитры всех 61 семейств справа
-    local famCatalogBtn = CreateWardrobeButton(filterBar, 64, 24, "Все 61", true)
-    famCatalogBtn:SetPoint("RIGHT", filterBar, "RIGHT", 0, 0)
-    ui.famCatalogBtn = famCatalogBtn
-
-    -- Стрелки < и > для прокрутки круглых иконок семейств
-    local famPrevBtn = CreateWardrobeButton(filterBar, 20, 24, "<", false)
-    famPrevBtn:SetPoint("LEFT", roleDropdownBtn, "RIGHT", 6, 0)
-    ui.famPrevBtn = famPrevBtn
-
-    local famNextBtn = CreateWardrobeButton(filterBar, 20, 24, ">", false)
-    famNextBtn:SetPoint("RIGHT", famCatalogBtn, "LEFT", -5, 0)
-    ui.famNextBtn = famNextBtn
-
-    -- Полоса из 15 круглых кнопок семейств (как слоты брони в Гардеробе!)
-    local familyStrip = CreateFrame("Frame", nil, filterBar)
-    familyStrip:SetPoint("LEFT", famPrevBtn, "RIGHT", 4, 0)
-    familyStrip:SetPoint("RIGHT", famNextBtn, "LEFT", -4, 0)
-    familyStrip:SetHeight(34)
-    familyStrip:EnableMouseWheel(true)
-
-    local function ScrollFamilyStrip(delta)
-        local maxOffset = math.max(0, #ui.allFamilyDefs - FAMILY_STRIP_VISIBLE)
-        ui.familyOffset = math.max(0, math.min(maxOffset, ui.familyOffset + delta))
-        addon:RefreshFamilyStrip()
-    end
-
-    familyStrip:SetScript("OnMouseWheel", function(_, delta)
-        ScrollFamilyStrip(delta < 0 and 5 or -5)
-    end)
-    famPrevBtn:SetScript("OnClick", function()
-        ScrollFamilyStrip(-5)
-    end)
-    famNextBtn:SetScript("OnClick", function()
-        ScrollFamilyStrip(5)
-    end)
-
-    for slotIdx = 1, FAMILY_STRIP_VISIBLE do
-        local btn = CreateFrame("Button", nil, familyStrip)
-        btn:SetSize(25, 25)
-        btn:SetPoint("LEFT", familyStrip, "LEFT", (slotIdx - 1) * 30 + 2, 0)
-        btn:EnableMouseWheel(true)
-        btn:SetScript("OnMouseWheel", function(_, delta)
-            ScrollFamilyStrip(delta < 0 and 5 or -5)
-        end)
+    -- Хелпер создания круглой иконки в стиле слотов Гардероба
+    local function CreateRoundSpecIcon(parent, size, iconTexture)
+        local btn = CreateFrame("Button", nil, parent)
+        btn:SetSize(size, size)
+        btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
         local bg = btn:CreateTexture(nil, "BACKGROUND")
         bg:SetAllPoints()
@@ -549,6 +572,7 @@ function addon:InitUI()
         local ic = btn:CreateTexture(nil, "ARTWORK")
         ic:SetPoint("TOPLEFT", btn, "TOPLEFT", 2, -2)
         ic:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -2, 2)
+        ic:SetTexture(iconTexture)
         ic:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         if ic.SetMask then
             ic:SetMask("Interface\\CharacterFrame\\TempPortraitAlphaMask")
@@ -570,118 +594,224 @@ function addon:InitUI()
         glow:Hide()
         btn.glow = glow
 
-        btn:SetScript("OnEnter", function(self)
-            local famDef = self.famDef
-            if not famDef then return end
-            GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            local spec = famDef.spec and addon.PetSpecs[famDef.spec]
-            GameTooltip:SetText(famDef.name, 1, 0.85, 0.2)
-            if spec then
-                local exTag = famDef.exotic and " |cff00ccff[Экзотика БМ]|r" or ""
-                GameTooltip:AddLine("Специализация: " .. spec.color .. spec.name .. "|r" .. exTag, 0.9, 0.9, 0.9)
-                GameTooltip:AddLine("Активно: |cffffd100" .. spec.activeName .. "|r", 0.85, 0.85, 0.85)
-            end
-            if famDef.familySkill then
-                GameTooltip:AddLine("Способность: |cff00ff96" .. famDef.familySkill .. "|r", 1, 1, 1, true)
-            end
-            if famDef.familyDesc then
-                GameTooltip:AddLine(" ")
-                GameTooltip:AddLine(famDef.familyDesc, 0.85, 0.85, 0.85, true)
-            end
-            if famDef.tome then
-                local learned, tome = addon:IsTomeLearned(famDef.tome)
-                if tome then
-                    GameTooltip:AddLine(" ")
-                    if learned then
-                        GameTooltip:AddLine(ICON_BOOK .. " Фолиант изучен: " .. tome.name, 0.2, 1.0, 0.4)
-                    else
-                        GameTooltip:AddLine(ICON_BOOK .. " Требуется: " .. tome.name, 1.0, 0.4, 0.2)
-                    end
+        return btn
+    end
+
+    -- Кружок «Все 61 семейство» (быстрый сброс выбора специализации и семейства)
+    local allSpecCircle = CreateRoundSpecIcon(filterBar, 30, "Interface\\ICONS\\Ability_Hunter_BeastMastery")
+    allSpecCircle:SetPoint("LEFT", roleDropdownBtn, "RIGHT", 10, 0)
+    ui.allSpecCircle = allSpecCircle
+
+    allSpecCircle:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText("Все семейства зверей (61)", 1, 0.85, 0.2)
+        GameTooltip:AddLine("Показать все 2 635 приручаемых моделей во всех трёх классах питомцев (Свирепость, Хитрость, Упорство).", 0.9, 0.9, 0.9, true)
+        GameTooltip:Show()
+    end)
+    allSpecCircle:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    allSpecCircle:SetScript("OnClick", function()
+        ui.selectedSpec = "ALL"
+        ui.selectedFamily = "ALL"
+        ui.currentPage = 1
+        ui.selectedBeast = nil
+        CloseAllDropdowns()
+        addon:RefreshUI()
+    end)
+
+    -- Три кружка классов петов (Свирепость, Хитрость, Упорство) + отдельная выпадашка семейств у каждого кружка!
+    wipe(ui.specGroups)
+    local prevAnchor = allSpecCircle
+
+    for specIdx, specID in ipairs(SPEC_ORDER) do
+        local specDef = addon.PetSpecs and addon.PetSpecs[specID]
+        if specDef then
+            local famsInSpec = {}
+            for _, fam in ipairs(addon.Families or {}) do
+                if fam.spec == specID then
+                    table.insert(famsInSpec, fam)
                 end
             end
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine("|cff888888Колёсико мыши: листать 61 семейство|r", 0.7, 0.7, 0.7)
-            GameTooltip:Show()
-        end)
+            table.sort(famsInSpec, function(a, b)
+                return GetShortFamilyName(a) < GetShortFamilyName(b)
+            end)
 
-        btn:SetScript("OnLeave", function()
-            GameTooltip:Hide()
-        end)
+            local circleBtn = CreateRoundSpecIcon(filterBar, 30, specDef.icon)
+            circleBtn:SetPoint("LEFT", prevAnchor, "RIGHT", 10, 0)
 
-        btn:SetScript("OnClick", function(self)
-            if not self.familyID then return end
-            if ui.selectedFamily == self.familyID and self.familyID ~= "ALL" then
-                ui.selectedFamily = "ALL"
+            local dropBtn = CreateWardrobeButton(filterBar, 112, 24, specDef.name .. " [v]", false)
+            dropBtn:SetPoint("LEFT", circleBtn, "RIGHT", 3, 0)
+            prevAnchor = dropBtn
+
+            local totalRows = 1 + #famsInSpec
+            local menuW = 258
+            local menuH = 8 + totalRows * 19 + 4
+            local specMenu = CreateFrame("Frame", nil, dropBtn, "BackdropTemplate")
+            specMenu:SetSize(menuW, menuH)
+            if specIdx == #SPEC_ORDER then
+                specMenu:SetPoint("TOPRIGHT", dropBtn, "BOTTOMRIGHT", 0, -3)
             else
-                ui.selectedFamily = self.familyID
+                specMenu:SetPoint("TOPLEFT", circleBtn, "BOTTOMLEFT", 0, -3)
             end
-            ui.currentPage = 1
-            ui.selectedBeast = nil
-            addon:RefreshUI()
-        end)
+            specMenu:SetFrameStrata("FULLSCREEN_DIALOG")
+            specMenu:SetClampedToScreen(true)
+            ApplyBackdrop(specMenu, 0.05, 0.05, 0.06, 0.99, 0.88, 0.68, 0.18, 1.0)
+            specMenu:EnableMouse(true)
+            specMenu:Hide()
 
-        ui.familyButtons[slotIdx] = btn
-    end
+            local menuBtns = {}
 
-    -- Выпадающая палитра всех 61 семейств («Все 61»)
-    local famPopup = CreateFrame("Frame", "BeastCollectorFamilyPopup", famCatalogBtn, "BackdropTemplate")
-    famPopup:SetSize(684, 384)
-    famPopup:SetPoint("TOPRIGHT", famCatalogBtn, "BOTTOMRIGHT", 0, -4)
-    famPopup:SetFrameStrata("FULLSCREEN_DIALOG")
-    ApplyBackdrop(famPopup, 0.05, 0.05, 0.06, 0.99, 0.88, 0.68, 0.18, 1.0)
-    famPopup:EnableMouse(true)
-    famPopup:Hide()
-    ui.familyCatalogPopup = famPopup
+            -- Верхний пункт в выпадашке: «Все — Свирепость / Хитрость / Упорство»
+            local allSpecItem = CreateWardrobeButton(specMenu, menuW - 8, 19, string.format("|T%s:14:14:0:0|t Все — %s (%d)", tostring(specDef.icon), specDef.name, #famsInSpec), true)
+            allSpecItem:SetPoint("TOPLEFT", specMenu, "TOPLEFT", 4, -4)
+            allSpecItem.label:SetJustifyH("LEFT")
+            allSpecItem.familyID = "ALL"
+            allSpecItem:SetScript("OnEnter", function(self)
+                self:SetBackdropColor(0.26, 0.20, 0.08, 0.98)
+                self:SetBackdropBorderColor(1.0, 0.82, 0.0, 1.0)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText("Все семейства: " .. specDef.color .. specDef.name .. "|r", 1, 0.85, 0.2)
+                GameTooltip:AddLine("Активно: |cffffd100" .. specDef.activeName .. "|r", 1, 1, 1, true)
+                GameTooltip:AddLine("Пассивно: |cff00ff96" .. specDef.passiveName .. "|r — " .. specDef.passiveDesc, 0.85, 0.85, 0.85, true)
+                GameTooltip:Show()
+            end)
+            allSpecItem:SetScript("OnLeave", function(self)
+                if self.isActiveTab then
+                    self:SetBackdropColor(0.22, 0.17, 0.06, 0.98)
+                    self:SetBackdropBorderColor(1.0, 0.82, 0.0, 1.0)
+                else
+                    self:SetBackdropColor(unpack(self.defaultBg))
+                    self:SetBackdropBorderColor(unpack(self.defaultBorder))
+                end
+                GameTooltip:Hide()
+            end)
+            allSpecItem:SetScript("OnClick", function()
+                ui.selectedSpec = specID
+                ui.selectedFamily = "ALL"
+                ui.currentPage = 1
+                ui.selectedBeast = nil
+                CloseAllDropdowns()
+                addon:RefreshUI()
+            end)
+            table.insert(menuBtns, allSpecItem)
 
-    local popTitle = famPopup:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    popTitle:SetPoint("TOPLEFT", famPopup, "TOPLEFT", 12, -10)
-    popTitle:SetText("|cffffd100Все 61 семейство зверей охотника (кликни для выбора):|r")
+            -- Алфавитный список семейств этого класса (Волки, Пауки и т.д. с (Экзот) и (Фолиант) в скобках)
+            for fIdx, famDef in ipairs(famsInSpec) do
+                local fBtn = CreateWardrobeButton(specMenu, menuW - 8, 18, GetFamilyDropdownText(famDef), false)
+                fBtn:SetPoint("TOPLEFT", specMenu, "TOPLEFT", 4, -8 - fIdx * 19)
+                fBtn.label:SetJustifyH("LEFT")
+                fBtn.familyID = famDef.id
+                fBtn.famDef = famDef
 
-    local popClose = CreateWardrobeButton(famPopup, 20, 20, "X", false)
-    popClose:SetPoint("TOPRIGHT", famPopup, "TOPRIGHT", -6, -6)
-    popClose:SetScript("OnClick", function() famPopup:Hide() end)
+                fBtn:SetScript("OnEnter", function(self)
+                    self:SetBackdropColor(0.24, 0.19, 0.08, 0.98)
+                    self:SetBackdropBorderColor(1.0, 0.82, 0.0, 1.0)
+                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                    GameTooltip:SetText(famDef.name, 1, 0.85, 0.2)
+                    local exTag = famDef.exotic and " |cff00ccff(Экзотика — только БМ)|r" or ""
+                    GameTooltip:AddLine("Специализация: " .. specDef.color .. specDef.name .. "|r" .. exTag, 0.9, 0.9, 0.9)
+                    GameTooltip:AddLine("Активно: |cffffd100" .. specDef.activeName .. "|r", 0.85, 0.85, 0.85)
+                    if famDef.familySkill then
+                        GameTooltip:AddLine("Способность: |cff00ff96" .. famDef.familySkill .. "|r", 1, 1, 1, true)
+                    end
+                    if famDef.familyDesc then
+                        GameTooltip:AddLine(" ")
+                        GameTooltip:AddLine(famDef.familyDesc, 0.85, 0.85, 0.85, true)
+                    end
+                    if famDef.tome then
+                        local learned, tome = addon:IsTomeLearned(famDef.tome)
+                        if tome then
+                            GameTooltip:AddLine(" ")
+                            if learned then
+                                GameTooltip:AddLine(ICON_BOOK .. " Фолиант изучен: " .. tome.name, 0.2, 1.0, 0.4)
+                            else
+                                GameTooltip:AddLine(ICON_BOOK .. " Требуется: " .. tome.name, 1.0, 0.4, 0.2)
+                            end
+                        end
+                    end
+                    GameTooltip:Show()
+                end)
 
-    ui.popupFamBtns = {}
-    local pCols = 4
-    local pW, pH = 164, 20
-    for idx, famDef in ipairs(ui.allFamilyDefs) do
-        local col = (idx - 1) % pCols
-        local row = math.floor((idx - 1) / pCols)
-        local pBtn = CreateWardrobeButton(famPopup, pW, pH, "", false)
-        pBtn:SetPoint("TOPLEFT", famPopup, "TOPLEFT", 10 + col * (pW + 4), -34 - row * (pH + 2))
-        pBtn.label:SetJustifyH("LEFT")
-        local icStr = famDef.icon and ("|T" .. tostring(famDef.icon) .. ":13:13:0:0:64:64:5:59:5:59|t ") or ""
-        local exDot = famDef.exotic and "|cff00ccff*|r" or ""
-        pBtn:SetText(icStr .. famDef.name .. exDot)
-        pBtn.familyID = famDef.id
-        pBtn.famIdx = idx
-        pBtn:SetScript("OnClick", function(self)
-            ui.selectedFamily = self.familyID
-            ui.currentPage = 1
-            ui.selectedBeast = nil
-            local maxOff = math.max(0, #ui.allFamilyDefs - FAMILY_STRIP_VISIBLE)
-            ui.familyOffset = math.max(0, math.min(maxOff, self.famIdx - 4))
-            famPopup:Hide()
-            addon:RefreshUI()
-        end)
-        ui.popupFamBtns[idx] = pBtn
-    end
+                fBtn:SetScript("OnLeave", function(self)
+                    if self.isActiveTab then
+                        self:SetBackdropColor(0.22, 0.17, 0.06, 0.98)
+                        self:SetBackdropBorderColor(1.0, 0.82, 0.0, 1.0)
+                    else
+                        self:SetBackdropColor(unpack(self.defaultBg))
+                        self:SetBackdropBorderColor(unpack(self.defaultBorder))
+                    end
+                    GameTooltip:Hide()
+                end)
 
-    famCatalogBtn:SetScript("OnClick", function(_, button)
-        if button == "RightButton" then
-            ui.selectedFamily = "ALL"
-            ui.familyOffset = 0
-            ui.currentPage = 1
-            ui.selectedBeast = nil
-            famPopup:Hide()
-            addon:RefreshUI()
-        elseif famPopup:IsShown() then
-            famPopup:Hide()
-        else
-            roleMenu:Hide()
-            famPopup:Show()
+                fBtn:SetScript("OnClick", function(self)
+                    ui.selectedSpec = specID
+                    ui.selectedFamily = self.familyID
+                    ui.currentPage = 1
+                    ui.selectedBeast = nil
+                    CloseAllDropdowns()
+                    addon:RefreshUI()
+                end)
+
+                table.insert(menuBtns, fBtn)
+            end
+
+            local function ShowSpecTooltip(owner)
+                GameTooltip:SetOwner(owner, "ANCHOR_TOP")
+                GameTooltip:SetText(specDef.color .. specDef.name .. "|r (" .. #famsInSpec .. " семейств)", 1, 0.85, 0.2)
+                GameTooltip:AddLine("Активно: |cffffd100" .. specDef.activeName .. "|r — " .. specDef.activeDesc, 0.9, 0.9, 0.9, true)
+                GameTooltip:AddLine("Пассивно: |cff00ff96" .. specDef.passiveName .. "|r — " .. specDef.passiveDesc, 0.85, 0.85, 0.85, true)
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("|cffffd100ЛКМ:|r Выбрать семейство из списка  |  |cffffd100ПКМ:|r Сбросить", 0.7, 0.9, 1.0)
+                GameTooltip:Show()
+            end
+
+            circleBtn:SetScript("OnEnter", ShowSpecTooltip)
+            circleBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+            local function ToggleSpecMenu(_, button)
+                if button == "RightButton" then
+                    ui.selectedSpec = "ALL"
+                    ui.selectedFamily = "ALL"
+                    ui.currentPage = 1
+                    ui.selectedBeast = nil
+                    CloseAllDropdowns()
+                    addon:RefreshUI()
+                elseif specMenu:IsShown() then
+                    CloseAllDropdowns()
+                else
+                    CloseAllDropdowns()
+                    specMenu:Show()
+                end
+            end
+
+            circleBtn:SetScript("OnClick", function(_, button)
+                if button == "RightButton" then
+                    ToggleSpecMenu(nil, "RightButton")
+                else
+                    local wasShown = specMenu:IsShown()
+                    ui.selectedSpec = specID
+                    ui.selectedFamily = "ALL"
+                    ui.currentPage = 1
+                    ui.selectedBeast = nil
+                    CloseAllDropdowns()
+                    if not wasShown then
+                        specMenu:Show()
+                    end
+                    addon:RefreshUI()
+                end
+            end)
+
+            dropBtn:SetScript("OnClick", ToggleSpecMenu)
+
+            ui.specGroups[specID] = {
+                specID = specID,
+                specDef = specDef,
+                circleBtn = circleBtn,
+                dropBtn = dropBtn,
+                menu = specMenu,
+                menuBtns = menuBtns,
+            }
         end
-    end)
+    end
 
     -- 5. ЦЕНТРАЛЬНАЯ СЕТКА 6x3 = 18 ПРЕВЬЮ-КАРТОЧЕК С 3D-МОДЕЛЯМИ (PlayerModel)
     local gridContainer = CreateFrame("Frame", nil, wardrobeCanvas)
@@ -768,6 +898,7 @@ function addon:InitUI()
 
         card:SetScript("OnClick", function(self, button)
             if not self.beast then return end
+            CloseAllDropdowns()
             ui.selectedBeast = self.beast
             if ui.sideDock and not ui.sideDock:IsShown() then
                 ui.sideDock:Show()
@@ -958,48 +1089,63 @@ function addon:InitUI()
 end
 
 -- ============================================================================
--- ОБНОВЛЕНИЕ ПОЛОСЫ КРУГЛЫХ КНОПОК СЕМЕЙСТВ
+-- ОБНОВЛЕНИЕ КРУЖКОВ КЛАССОВ ПИТОМЦЕВ (СВИРЕПОСТЬ / ХИТРОСТЬ / УПОРСТВО) И ИХ ВЫПАДАШЕК
 -- ============================================================================
 function addon:RefreshFamilyStrip()
-    local maxOffset = math.max(0, #ui.allFamilyDefs - FAMILY_STRIP_VISIBLE)
-    if ui.familyOffset > maxOffset then
-        ui.familyOffset = maxOffset
-    end
-
-    if ui.famPrevBtn then
-        ui.famPrevBtn:SetAlpha(ui.familyOffset > 0 and 1.0 or 0.35)
-    end
-    if ui.famNextBtn then
-        ui.famNextBtn:SetAlpha(ui.familyOffset < maxOffset and 1.0 or 0.35)
-    end
-
-    for slotIdx = 1, FAMILY_STRIP_VISIBLE do
-        local btn = ui.familyButtons[slotIdx]
-        local famDef = ui.allFamilyDefs[ui.familyOffset + slotIdx]
-        if btn and famDef then
-            btn.familyID = famDef.id
-            btn.famDef = famDef
-            btn.icon:SetTexture(famDef.icon or "Interface\\ICONS\\Ability_Hunter_BeastMastery")
-
-            local isSel = (famDef.id == ui.selectedFamily)
-            if isSel then
-                btn.ring:SetVertexColor(1.0, 0.85, 0.15, 1.0)
-                btn.glow:Show()
-                btn:SetAlpha(1.0)
-            else
-                btn.ring:SetVertexColor(0.65, 0.65, 0.68, 0.90)
-                btn.glow:Hide()
-                btn:SetAlpha(0.86)
-            end
-            btn:Show()
-        elseif btn then
-            btn:Hide()
+    local allActive = (ui.selectedSpec == "ALL" and ui.selectedFamily == "ALL")
+    if ui.allSpecCircle then
+        if allActive then
+            ui.allSpecCircle.ring:SetVertexColor(1.0, 0.85, 0.15, 1.0)
+            ui.allSpecCircle.glow:Show()
+            ui.allSpecCircle:SetAlpha(1.0)
+        else
+            ui.allSpecCircle.ring:SetVertexColor(0.65, 0.65, 0.68, 0.90)
+            ui.allSpecCircle.glow:Hide()
+            ui.allSpecCircle:SetAlpha(0.84)
         end
     end
 
-    if ui.popupFamBtns then
-        for _, pBtn in ipairs(ui.popupFamBtns) do
-            pBtn:SetActiveTab(pBtn.familyID == ui.selectedFamily)
+    local activeFamDef = (ui.selectedFamily ~= "ALL") and self.FamilyByID[ui.selectedFamily] or nil
+    if activeFamDef and activeFamDef.spec then
+        ui.selectedSpec = activeFamDef.spec
+    end
+
+    for _, specID in ipairs(SPEC_ORDER) do
+        local sg = ui.specGroups and ui.specGroups[specID]
+        if sg then
+            local isThisSpec = (ui.selectedSpec == specID)
+            if isThisSpec then
+                sg.circleBtn.ring:SetVertexColor(1.0, 0.85, 0.15, 1.0)
+                sg.circleBtn.glow:Show()
+                sg.circleBtn:SetAlpha(1.0)
+                sg.dropBtn:SetActiveTab(true)
+                if activeFamDef and activeFamDef.spec == specID then
+                    local icStr = activeFamDef.icon and ("|T" .. tostring(activeFamDef.icon) .. ":13:13:0:0:64:64:5:59:5:59|t ") or ""
+                    sg.dropBtn:SetText(icStr .. GetShortFamilyName(activeFamDef) .. " [v]")
+                else
+                    sg.dropBtn:SetText(sg.specDef.name .. ": Все [v]")
+                end
+            else
+                sg.circleBtn.ring:SetVertexColor(0.65, 0.65, 0.68, 0.90)
+                sg.circleBtn.glow:Hide()
+                sg.circleBtn:SetAlpha(0.86)
+                sg.dropBtn:SetActiveTab(false)
+                sg.dropBtn:SetText(sg.specDef.name .. " [v]")
+            end
+
+            for _, mBtn in ipairs(sg.menuBtns or {}) do
+                if mBtn.familyID == "ALL" then
+                    mBtn:SetActiveTab(isThisSpec and ui.selectedFamily == "ALL")
+                else
+                    mBtn:SetActiveTab(ui.selectedFamily == mBtn.familyID)
+                end
+            end
+        end
+    end
+
+    if ui.roleMenuItems then
+        for _, item in ipairs(ui.roleMenuItems) do
+            item:SetActiveTab(item.roleID == ui.selectedRole)
         end
     end
 end
@@ -1027,12 +1173,70 @@ function addon:UpdateCardBorder(card)
     end
 end
 
+local function FamilyHasRole(fam, roleID)
+    if not fam then return false end
+    for _, r in ipairs(fam.roles or {}) do
+        if r == roleID then return true end
+    end
+    return false
+end
+
+local function BeastMatchesRoleFilter(beast, fam, roleID)
+    if not roleID or roleID == "ALL" then return true end
+    local skillLower = string.lower(fam.familySkill or "")
+
+    if roleID == "BL" then
+        return fam.spec == "FEROCITY" or FamilyHasRole(fam, "BL")
+    elseif roleID == "TENACITY_DEF" then
+        return fam.spec == "TENACITY"
+    elseif roleID == "CUNNING_FREE" then
+        return fam.spec == "CUNNING"
+    elseif roleID == "DISPEL" then
+        return FamilyHasRole(fam, "DISPEL")
+            or string.find(skillLower, "диспел", 1, true) ~= nil
+            or string.find(skillLower, "умиротвор", 1, true) ~= nil
+    elseif roleID == "MORTAL" then
+        return FamilyHasRole(fam, "MORTAL")
+            or string.find(skillLower, "срез хила", 1, true) ~= nil
+            or string.find(skillLower, "срез исцел", 1, true) ~= nil
+    elseif roleID == "TANK" then
+        return string.find(skillLower, "урона", 1, true) ~= nil
+            or string.find(skillLower, "щит", 1, true) ~= nil
+            or string.find(skillLower, "панцир", 1, true) ~= nil
+            or string.find(skillLower, "чешуя", 1, true) ~= nil
+            or string.find(skillLower, "шкура", 1, true) ~= nil
+            or string.find(skillLower, "матрица", 1, true) ~= nil
+    elseif roleID == "SLOW" then
+        return FamilyHasRole(fam, "SLOW")
+            or string.find(skillLower, "замедлен", 1, true) ~= nil
+    elseif roleID == "DODGE" then
+        return string.find(skillLower, "уклонен", 1, true) ~= nil
+    elseif roleID == "HEAL" then
+        return FamilyHasRole(fam, "HEAL") or beast.family == "spiritbeast"
+    elseif roleID == "EXOTIC" then
+        return fam.exotic == true
+    elseif roleID == "TOME" then
+        return fam.tome ~= nil
+    elseif roleID == "RARE_ONLY" then
+        local r = beast.rarity
+        return (r == "SPIRIT" or r == "SECRET" or r == "RARE" or r == "BOSS")
+    end
+
+    return FamilyHasRole(fam, roleID)
+end
+
 local function BeastMatchesFilters(beast)
     local fam = addon.FamilyByID[beast.family]
     if not fam then return false end
 
-    if ui.selectedFamily ~= "ALL" and beast.family ~= ui.selectedFamily then
-        return false
+    if ui.selectedFamily ~= "ALL" then
+        if beast.family ~= ui.selectedFamily then
+            return false
+        end
+    elseif ui.selectedSpec ~= "ALL" then
+        if fam.spec ~= ui.selectedSpec then
+            return false
+        end
     end
 
     if ui.onlyUncollected and addon:IsBeastCollected(beast) then
@@ -1040,14 +1244,9 @@ local function BeastMatchesFilters(beast)
     end
 
     if ui.selectedRole ~= "ALL" then
-        local hasRole = false
-        for _, r in ipairs(fam.roles or {}) do
-            if r == ui.selectedRole then
-                hasRole = true
-                break
-            end
+        if not BeastMatchesRoleFilter(beast, fam, ui.selectedRole) then
+            return false
         end
-        if not hasRole then return false end
     end
 
     if ui.searchText ~= "" then
@@ -1175,10 +1374,10 @@ function addon:RefreshUI()
     ui.tabAllModels:SetActiveTab(not ui.onlyUncollected)
     ui.tabMissing:SetActiveTab(ui.onlyUncollected)
 
-    local activeRoleLabel = "Все звери [v]"
+    local activeRoleLabel = "Трейты и абилки [v]"
     for _, rf in ipairs(ROLE_FILTERS) do
         if rf.id == ui.selectedRole then
-            activeRoleLabel = rf.label .. " [v]"
+            activeRoleLabel = (rf.short or rf.label) .. " [v]"
             break
         end
     end
@@ -1188,15 +1387,19 @@ function addon:RefreshUI()
     self:RefreshFamilyStrip()
 
     local activeFamDef = (ui.selectedFamily ~= "ALL") and self.FamilyByID[ui.selectedFamily] or nil
+    local activeSpecDef = (ui.selectedSpec ~= "ALL") and self.PetSpecs[ui.selectedSpec] or nil
     if activeFamDef then
         ui.winTitle:SetText("|cffffd100Звери охотника — " .. activeFamDef.name .. "|r")
         ui.portraitIcon:SetTexture(activeFamDef.icon or "Interface\\ICONS\\Ability_Hunter_BeastMastery")
+    elseif activeSpecDef then
+        ui.winTitle:SetText("|cffffd100Звери охотника — " .. activeSpecDef.color .. activeSpecDef.name .. "|r |cffffd100(Все семейства)|r")
+        ui.portraitIcon:SetTexture(activeSpecDef.icon or "Interface\\ICONS\\Ability_Hunter_BeastMastery")
     else
         ui.winTitle:SetText("|cffffd100Звери охотника — Все 61 семейство|r")
         ui.portraitIcon:SetTexture("Interface\\ICONS\\Ability_Hunter_BeastMastery")
     end
 
-    local colCount, totCount = self:GetCollectionProgress(ui.selectedFamily)
+    local colCount, totCount = self:GetCollectionProgress(ui.selectedFamily, ui.selectedSpec)
     ui.progBar:SetMinMaxValues(0, math.max(1, totCount))
     ui.progBar:SetValue(colCount)
     ui.progText:SetText(string.format("%d / %d", colCount, totCount))
@@ -1205,6 +1408,19 @@ function addon:RefreshUI()
     for _, beast in ipairs(self.Beasts or {}) do
         if BeastMatchesFilters(beast) then
             table.insert(ui.filteredBeasts, beast)
+        end
+    end
+
+    -- Если выбрано конкретное семейство/спек, с которым несовместим старый фильтр трейта — мягко сбрасываем фильтр трейта
+    if #ui.filteredBeasts == 0 and ui.selectedRole ~= "ALL" and ui.searchText == "" and not ui.onlyUncollected then
+        ui.selectedRole = "ALL"
+        ui.roleDropdownBtn:SetText("Трейты и абилки [v]")
+        ui.roleDropdownBtn:SetActiveTab(false)
+        self:RefreshFamilyStrip()
+        for _, beast in ipairs(self.Beasts or {}) do
+            if BeastMatchesFilters(beast) then
+                table.insert(ui.filteredBeasts, beast)
+            end
         end
     end
 

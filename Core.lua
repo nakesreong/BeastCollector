@@ -214,10 +214,13 @@ function addon:ToggleManualCollected(beast)
     end
 end
 
-function addon:GetCollectionProgress(familyID)
+function addon:GetCollectionProgress(familyID, specID)
     local collected, total = 0, 0
     for _, beast in ipairs(self.Beasts or {}) do
-        if not familyID or familyID == "ALL" or beast.family == familyID then
+        local fam = self.FamilyByID and self.FamilyByID[beast.family]
+        local matchFam = (not familyID or familyID == "ALL" or beast.family == familyID)
+        local matchSpec = (not specID or specID == "ALL" or (fam and fam.spec == specID))
+        if matchFam and matchSpec then
             total = total + 1
             if self:IsBeastCollected(beast) then
                 collected = collected + 1
