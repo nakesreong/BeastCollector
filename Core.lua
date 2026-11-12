@@ -365,7 +365,13 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
             addon:InitUI()
         end
     elseif event == "PLAYER_ENTERING_WORLD" or event == "PET_STABLE_SHOW" or event == "PET_STABLE_UPDATE" then
+        if event == "PLAYER_ENTERING_WORLD" and addon.SetupRoundMinimapButton then
+            addon:SetupRoundMinimapButton()
+        end
         C_Timer.After(0.5, function()
+            if addon.SetupRoundMinimapButton then
+                addon:SetupRoundMinimapButton()
+            end
             addon:ScanHunterStables()
         end)
     elseif event == "UNIT_PET" and arg1 == "player" then

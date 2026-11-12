@@ -1528,33 +1528,223 @@ function addon:HookCollectionsJournal()
     end
 end
 
+local MINIMAP_ICONS = {
+    { icon = 132164, name = "Приручение зверя (Лапа)" },          -- Ability_Hunter_BeastTaming
+    { icon = 236165, name = "Дух зверя (Призрачный волк)" },      -- Ability_Hunter_AspectOfTheBeast
+    { icon = 132161, name = "Призыв питомца (Охотничий рог)" },   -- Ability_Hunter_BeastCall
+    { icon = 132176, name = "Повелитель зверей" },                -- Ability_Hunter_BeastMastery
+    { icon = 132328, name = "Выслеживание зверей" },              -- Ability_Tracking
+}
+
+local function PositionRoundMinimapButton(btn, angleDeg)
+    local mm = _G.Minimap
+    if not btn or not mm then return end
+    local rad = math.rad(angleDeg or 175)
+    local halfW = (mm:GetWidth() or 140) * 0.5 + 6
+    local halfH = (mm:GetHeight() or 140) * 0.5 + 6
+    local x = math.cos(rad) * halfW
+    local y = math.sin(rad) * halfH
+
+    local isSquare = (_G.GetMinimapShape and _G.GetMinimapShape() == "SQUARE") or (_G.ElvUI and _G.ElvUI[1])
+    if isSquare then
+        local maxW = (mm:GetWidth() or 140) * 0.5 + 2
+        local maxH = (mm:GetHeight() or 140) * 0.5 + 2
+        x = math.max(-maxW, math.min(maxW, x * 1.28))
+        y = math.max(-maxH, math.min(maxH, y * 1.28))
+    end
+
+    btn:ClearAllPoints()
+    btn:SetPoint("CENTER", mm, "CENTER", x, y)
+end
+
+function addon:SetupRoundMinimapButton()
+    local mm = _G.Minimap
+    if not mm then return end
+    if not self.db then self:InitDB() end
+    self.db.minimap = self.db.minimap or { hide = false }
+    if type(self.db.minimap.angle) ~= "number" then
+        self.db.minimap.angle = 175
+    end
+    if type(self.db.minimap.iconIdx) ~= "number" or not MINIMAP_ICONS[self.db.minimap.iconIdx] then
+        self.db.minimap.iconIdx = 1
+    end
+
+    if not self.roundMinimapBtn then
+        -- Анонимное имя фрейма (nil), чтобы HidingBar и BasicMinimap не прятали кнопку и не делали её квадратной
+        local btn = CreateFrame("Button", nil, mm)
+        btn:SetSize(32, 32)
+        btn:SetFrameStrata("MEDIUM")
+        if btn.SetFixedFrameStrata then btn:SetFixedFrameStrata(true) end
+        btn:SetFrameLevel(22)
+        if btn.SetFixedFrameLevel then btn:SetFixedFrameLevel(true) end
+        btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        btn:RegisterForDrag("LeftButton")
+
+        -- Круглая тёмная подложка миникарты
+        local bg = btn:CreateTexture(nil, "BACKGROUND")
+        bg:SetSize(25, 25)
+        bg:SetPoint("CENTER", btn, "CENTER", 0, 1)
+        bg:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
+        bg:SetVertexColor(0.05, 0.05, 0.06, 0.95)
+        btn.bg = bg
+
+        -- Внутриигровая иконка охотника, обрезанная круглой маской портрета
+        local icon = btn:CreateTexture(nil, "ARTWORK")
+        icon:SetSize(20, 20)
+        icon:SetPoint("CENTER", btn, "CENTER", 0, 1)
+        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        if icon.SetMask then
+            icon:SetMask("Interface\\CharacterFrame\\TempPortraitAlphaMask")
+        end
+        if btn.CreateMaskTexture and icon.AddMaskTexture then
+            local mask = btn:CreateMaskTexture()
+            mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+            mask:SetAllPoints(icon)
+            icon:AddMaskTexture(mask)
+        end
+        btn.icon = icon
+
+        -- Классическое круглое золотистое кольцо миникарты WoW
+        local border = btn:CreateTexture(nil, "OVERLAY")
+        border:SetSize(54, 54)
+        border:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
+        border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+        border:SetVertexColor(1.0, 0.90, 0.65, 1.0)
+        btn.border = border
+
+        -- Круглое свечение при наведении мышки
+        btn:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight", "ADD")
+
+        btn:SetScript("OnMouseDown", function(self)
+            self.icon:SetSize(18, 18)
+            self.icon:SetPoint("CENTER", self, "CENTER", 1, 0)
+        end)
+        btn:SetScript("OnMouseUp", function(self)
+            self.icon:SetSize(20, 20)
+            self.icon:SetPoint("CENTER", self, "CENTER", 0, 1)
+        end)
+
+        btn:SetScript("OnDragStart", function(self)
+            GameTooltip:Hide()
+            self:SetScript("OnUpdate", function(b)
+                local mx, my = mm:GetCenter()
+                local cx, cy = GetCursorPosition()
+                local scale = mm:GetEffectiveScale() or 1
+                if mx and my and cx and cy then
+                    local dx = (cx / scale) - mx
+                    local dy = (cy / scale) - my
+                    local deg = math.deg(math.atan2(dy, dx)) % 360
+                    addon.db.minimap.angle = deg
+                    PositionRoundMinimapButton(b, deg)
+                end
+            end)
+        end)
+
+        btn:SetScript("OnDragStop", function(self)
+            self:SetScript("OnUpdate", nil)
+        end)
+
+        btn:SetScript("OnClick", function(self, button)
+            if button == "RightButton" and IsShiftKeyDown() then
+                local nextIdx = (addon.db.minimap.iconIdx % #MINIMAP_ICONS) + 1
+                addon.db.minimap.iconIdx = nextIdx
+                local info = MINIMAP_ICONS[nextIdx]
+                self.icon:SetTexture(info.icon)
+                if addon.ldbObj then
+                    addon.ldbObj.icon = info.icon
+                end
+                if GameTooltip:IsOwned(self) then
+                    self:GetScript("OnEnter")(self)
+                end
+            elseif button == "RightButton" then
+                addon:ScanHunterStables()
+                if not ui.mainFrame or not ui.mainFrame:IsShown() then
+                    ui.onlyUncollected = true
+                    addon:ToggleMainWindow()
+                else
+                    ui.onlyUncollected = not ui.onlyUncollected
+                    addon:RefreshUI()
+                end
+            else
+                addon:ToggleMainWindow()
+            end
+        end)
+
+        btn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+            local col, tot = addon:GetCollectionProgress("ALL", "ALL")
+            local curIconInfo = MINIMAP_ICONS[addon.db.minimap.iconIdx] or MINIMAP_ICONS[1]
+            GameTooltip:AddLine("|cff00ff96Beast|r|cffffaa00Collector|r — Бестиарий Охотника")
+            GameTooltip:AddLine(string.format("Приручено моделей: |cffffd100%d / %d|r (61 семейство)", col, tot), 0.9, 0.9, 0.9)
+            GameTooltip:AddLine("Иконка: |cff88ccff" .. curIconInfo.name .. "|r", 0.75, 0.75, 0.75)
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine("|cffffd100ЛКМ:|r Открыть / закрыть коллекцию 3D-моделей", 0.7, 0.9, 1.0)
+            GameTooltip:AddLine("|cffffd100ПКМ:|r Показать неприручённых зверей", 0.7, 0.9, 1.0)
+            GameTooltip:AddLine("|cffffd100Shift + ПКМ:|r Сменить иконку кнопки", 0.7, 0.9, 1.0)
+            GameTooltip:AddLine("|cffaaaaaaЗажать ЛКМ:|r Перетащить вокруг миникарты", 0.65, 0.65, 0.65)
+            GameTooltip:Show()
+        end)
+
+        btn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+
+        self.roundMinimapBtn = btn
+    end
+
+    local iconInfo = MINIMAP_ICONS[self.db.minimap.iconIdx] or MINIMAP_ICONS[1]
+    self.roundMinimapBtn.icon:SetTexture(iconInfo.icon)
+    PositionRoundMinimapButton(self.roundMinimapBtn, self.db.minimap.angle)
+
+    if self.db.minimap.hide then
+        self.roundMinimapBtn:Hide()
+    else
+        self.roundMinimapBtn:Show()
+    end
+end
+
 function addon:InitLDB()
+    self:SetupRoundMinimapButton()
+
     if not LDB or self.ldbObj then return end
+    local iconInfo = (self.db and self.db.minimap and MINIMAP_ICONS[self.db.minimap.iconIdx]) or MINIMAP_ICONS[1]
 
     self.ldbObj = LDB:NewDataObject("BeastCollector", {
         type = "data source",
         text = "BeastCollector",
-        icon = "Interface\\ICONS\\Ability_Hunter_BeastMastery",
-        OnClick = function()
+        icon = iconInfo.icon,
+        OnClick = function(_, button)
+            if button == "RightButton" then
+                addon:ScanHunterStables()
+            end
             addon:ToggleMainWindow()
         end,
         OnTooltipShow = function(tooltip)
             if not tooltip then return end
-            local col, tot = addon:GetCollectionProgress("ALL")
+            local col, tot = addon:GetCollectionProgress("ALL", "ALL")
             tooltip:AddLine("|cff00ff96Beast|r|cffffaa00Collector|r — Бестиарий Охотника")
             tooltip:AddLine(string.format("Приручено моделей: |cffffd100%d / %d|r (61 семейство)", col, tot), 0.9, 0.9, 0.9)
             tooltip:AddLine(" ")
             tooltip:AddLine("|cffffd100ЛКМ или /bc:|r Открыть коллекцию 3D-моделей зверей", 0.7, 0.9, 1.0)
         end,
     })
-
-    if LDBIcon and self.db and self.db.minimap then
-        LDBIcon:Register("BeastCollector", self.ldbObj, self.db.minimap)
-    end
 end
 
 SLASH_BEASTCOLLECTOR1 = "/bc"
 SLASH_BEASTCOLLECTOR2 = "/beastcollector"
-SlashCmdList["BEASTCOLLECTOR"] = function()
-    addon:ToggleMainWindow()
+SlashCmdList["BEASTCOLLECTOR"] = function(msg)
+    local cmd = strtrim(string.lower(msg or ""))
+    if cmd == "scan" then
+        addon:ScanHunterStables()
+        print("|cff00ff96[BeastCollector]|r Стойла и активный питомец просканированы.")
+    elseif cmd == "minimap" or cmd == "mm" then
+        if addon.db and addon.db.minimap then
+            addon.db.minimap.hide = not addon.db.minimap.hide
+            addon:SetupRoundMinimapButton()
+            local state = addon.db.minimap.hide and "скрыта" or "показана"
+            print("|cff00ff96[BeastCollector]|r Круглая кнопка у миникарты " .. state .. ".")
+        end
+    else
+        addon:ToggleMainWindow()
+    end
 end
