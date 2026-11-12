@@ -37,6 +37,10 @@ function addon:GetBeastTomes(beast)
         table.insert(res, key)
     end
 
+    if beast.id == "spiritbeast_dreamowl_fire" or beast.lookID == "dreamowl_fire" then
+        addTome("NAHQI")
+    end
+
     local mgTomes = self.ModelGroupTomes and beast.modelGroup and self.ModelGroupTomes[beast.modelGroup]
     if mgTomes then
         for _, tKey in ipairs(mgTomes) do
@@ -70,6 +74,12 @@ function addon:BuildIndices()
     wipe(self.BeastByNpcID)
     wipe(self.BeastByDisplayID)
 
+    if self.TamingTomes then
+        for _, tome in pairs(self.TamingTomes) do
+            tome.beastCount = 0
+        end
+    end
+
     for idx, fam in ipairs(self.Families or {}) do
         fam.order = idx
         self.FamilyByID[fam.id] = fam
@@ -87,6 +97,14 @@ function addon:BuildIndices()
             end
         end
         beast.tomes = self:GetBeastTomes(beast)
+        if self.TamingTomes and beast.tomes then
+            for _, tKey in ipairs(beast.tomes) do
+                local tDef = self.TamingTomes[tKey]
+                if tDef then
+                    tDef.beastCount = (tDef.beastCount or 0) + 1
+                end
+            end
+        end
         if beast.npcID then
             self.BeastByNpcID[beast.npcID] = beast
         end
@@ -112,6 +130,7 @@ function addon:InitDB()
     db.stabledByDisplay = db.stabledByDisplay or {}
     db.stabledByName = db.stabledByName or {}
     db.manualCollected = db.manualCollected or {}
+    db.manualTomes = db.manualTomes or {}
     db.minimap = db.minimap or { hide = false }
     db.settings = db.settings or {
         showUnitTooltips = true,
@@ -128,9 +147,19 @@ function addon:IsTomeLearned(tomeKey)
     local tome = self.TamingTomes and self.TamingTomes[tomeKey]
     if not tome then return true, nil end
 
+    if self.db and self.db.manualTomes and self.db.manualTomes[tomeKey] then
+        return true, tome
+    end
+
     local _, raceFile = UnitRace("player")
     if tome.autoRaces and raceFile and tome.autoRaces[raceFile] then
         return true, tome
+    end
+
+    if tome.spellID then
+        if (_G.IsPlayerSpell and IsPlayerSpell(tome.spellID)) or (_G.IsSpellKnown and IsSpellKnown(tome.spellID)) then
+            return true, tome
+        end
     end
 
     if tome.questID and C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
@@ -140,6 +169,30 @@ function addon:IsTomeLearned(tomeKey)
     end
 
     return false, tome
+end
+
+function addon:ToggleManualTome(tomeKey)
+    if not tomeKey or not self.db then return end
+    self.db.manualTomes = self.db.manualTomes or {}
+    if self.db.manualTomes[tomeKey] then
+        self.db.manualTomes[tomeKey] = nil
+    else
+        self.db.manualTomes[tomeKey] = true
+    end
+    if self.RefreshUI then
+        self:RefreshUI()
+    end
+end
+
+function addon:GetTomeProgress()
+    local learnedCount, totalCount = 0, 0
+    for _, tKey in ipairs(self.TamingTomesOrder or {}) do
+        totalCount = totalCount + 1
+        if self:IsTomeLearned(tKey) then
+            learnedCount = learnedCount + 1
+        end
+    end
+    return learnedCount, totalCount
 end
 
 -- ============================================================================

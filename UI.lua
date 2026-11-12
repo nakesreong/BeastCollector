@@ -28,15 +28,19 @@ local ICON_BOOK  = "|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t"
 local ICON_PIN   = "|TInterface\\ICONS\\Ability_Spy:14:14:0:0|t"
 
 local ui = {
+    viewMode = "BEASTS", -- "BEASTS" или "TOMES"
     selectedSpec = "ALL",
     selectedFamily = "ALL",
     selectedRole = "ALL",
+    selectedTomeFilter = nil,
     onlyUncollected = false,
     searchText = "",
     currentPage = 1,
     totalPages = 1,
     selectedBeast = nil,
+    selectedTome = nil,
     filteredBeasts = {},
+    filteredTomes = {},
     specGroups = {},
     gridCards = {},
 }
@@ -392,28 +396,44 @@ function addon:InitUI()
     subHeader:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, -34)
     subHeader:SetHeight(28)
 
-    local tabAllModels = CreateWardrobeButton(subHeader, 96, 22, "Все модели", false)
+    local tabAllModels = CreateWardrobeButton(subHeader, 90, 22, "Все модели", false)
     tabAllModels:SetPoint("LEFT", subHeader, "LEFT", 0, 0)
     tabAllModels:SetScript("OnClick", function()
+        ui.viewMode = "BEASTS"
         ui.onlyUncollected = false
+        ui.selectedTomeFilter = nil
         ui.currentPage = 1
+        CloseAllDropdowns()
         addon:RefreshUI()
     end)
     ui.tabAllModels = tabAllModels
 
-    local tabMissing = CreateWardrobeButton(subHeader, 102, 22, "Несобранные", false)
+    local tabMissing = CreateWardrobeButton(subHeader, 96, 22, "Несобранные", false)
     tabMissing:SetPoint("LEFT", tabAllModels, "RIGHT", 4, 0)
     tabMissing:SetScript("OnClick", function()
+        ui.viewMode = "BEASTS"
         ui.onlyUncollected = true
+        ui.selectedTomeFilter = nil
         ui.currentPage = 1
+        CloseAllDropdowns()
         addon:RefreshUI()
     end)
     ui.tabMissing = tabMissing
 
+    local tabTomes = CreateWardrobeButton(subHeader, 114, 22, ICON_BOOK .. " Фолианты (11)", false)
+    tabTomes:SetPoint("LEFT", tabMissing, "RIGHT", 4, 0)
+    tabTomes:SetScript("OnClick", function()
+        ui.viewMode = "TOMES"
+        ui.currentPage = 1
+        CloseAllDropdowns()
+        addon:RefreshUI()
+    end)
+    ui.tabTomes = tabTomes
+
     -- Зелёный прогресс-бар коллекции по центру
     local progContainer = CreateFrame("Frame", nil, subHeader, "BackdropTemplate")
-    progContainer:SetSize(196, 18)
-    progContainer:SetPoint("CENTER", subHeader, "CENTER", -14, 0)
+    progContainer:SetSize(180, 18)
+    progContainer:SetPoint("LEFT", tabTomes, "RIGHT", 10, 0)
     ApplyBackdrop(progContainer, 0.03, 0.03, 0.03, 0.95, 0.35, 0.32, 0.25, 1.0)
 
     local progBar = CreateFrame("StatusBar", nil, progContainer)
@@ -535,6 +555,8 @@ function addon:InitUI()
             GameTooltip:Hide()
         end)
         item:SetScript("OnClick", function()
+            ui.viewMode = "BEASTS"
+            ui.selectedTomeFilter = nil
             ui.selectedRole = rf.id
             ui.currentPage = 1
             ui.selectedBeast = nil
@@ -546,6 +568,8 @@ function addon:InitUI()
 
     roleDropdownBtn:SetScript("OnClick", function(_, button)
         if button == "RightButton" then
+            ui.viewMode = "BEASTS"
+            ui.selectedTomeFilter = nil
             ui.selectedRole = "ALL"
             ui.currentPage = 1
             ui.selectedBeast = nil
@@ -610,6 +634,8 @@ function addon:InitUI()
     end)
     allSpecCircle:SetScript("OnLeave", function() GameTooltip:Hide() end)
     allSpecCircle:SetScript("OnClick", function()
+        ui.viewMode = "BEASTS"
+        ui.selectedTomeFilter = nil
         ui.selectedSpec = "ALL"
         ui.selectedFamily = "ALL"
         ui.currentPage = 1
@@ -685,6 +711,8 @@ function addon:InitUI()
                 GameTooltip:Hide()
             end)
             allSpecItem:SetScript("OnClick", function()
+                ui.viewMode = "BEASTS"
+                ui.selectedTomeFilter = nil
                 ui.selectedSpec = specID
                 ui.selectedFamily = "ALL"
                 ui.currentPage = 1
@@ -743,6 +771,8 @@ function addon:InitUI()
                 end)
 
                 fBtn:SetScript("OnClick", function(self)
+                    ui.viewMode = "BEASTS"
+                    ui.selectedTomeFilter = nil
                     ui.selectedSpec = specID
                     ui.selectedFamily = self.familyID
                     ui.currentPage = 1
@@ -769,6 +799,8 @@ function addon:InitUI()
 
             local function ToggleSpecMenu(_, button)
                 if button == "RightButton" then
+                    ui.viewMode = "BEASTS"
+                    ui.selectedTomeFilter = nil
                     ui.selectedSpec = "ALL"
                     ui.selectedFamily = "ALL"
                     ui.currentPage = 1
@@ -788,6 +820,8 @@ function addon:InitUI()
                     ToggleSpecMenu(nil, "RightButton")
                 else
                     local wasShown = specMenu:IsShown()
+                    ui.viewMode = "BEASTS"
+                    ui.selectedTomeFilter = nil
                     ui.selectedSpec = specID
                     ui.selectedFamily = "ALL"
                     ui.currentPage = 1
@@ -870,6 +904,33 @@ function addon:InitUI()
         card.checkBadge = checkBadge
 
         card:SetScript("OnEnter", function(self)
+            if self.tome then
+                self:SetBackdropBorderColor(1.0, 0.85, 0.20, 1.0)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                local learned = addon:IsTomeLearned(self.tome.id)
+                GameTooltip:SetText(ICON_BOOK .. " " .. self.tome.name, 1, 0.85, 0.2)
+                if self.tome.enName then
+                    GameTooltip:AddLine(self.tome.enName, 0.72, 0.72, 0.78)
+                end
+                if self.tome.categoryName then
+                    GameTooltip:AddLine("Открывает: |cff66ff99" .. self.tome.categoryName .. "|r (" .. tostring(self.tome.beastCount or 0) .. " мод.)", 0.9, 0.9, 0.9, true)
+                end
+                if learned then
+                    GameTooltip:AddLine(ICON_READY .. " |cff00ff96Навык изучен!|r", 0.2, 1.0, 0.4)
+                else
+                    GameTooltip:AddLine(ICON_STAR .. " |cffff8800Ещё не изучен|r", 1.0, 0.55, 0.2)
+                end
+                if self.tome.source then
+                    GameTooltip:AddLine(" ")
+                    GameTooltip:AddLine("|cffffd100Где достать:|r " .. self.tome.source, 0.92, 0.90, 0.85, true)
+                end
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("|cffffd100ЛКМ:|r Подробное досье  |  |cffffd100ПКМ:|r Проложить маршрут", 0.7, 0.9, 1.0)
+                GameTooltip:AddLine("|cffffd100Shift+ЛКМ:|r Показать всех зверей этого фолианта", 0.6, 1.0, 0.7)
+                GameTooltip:Show()
+                return
+            end
+
             if not self.beast then return end
             self:SetBackdropBorderColor(1.0, 0.85, 0.20, 1.0)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -905,6 +966,30 @@ function addon:InitUI()
         end)
 
         card:SetScript("OnClick", function(self, button)
+            if self.tome then
+                CloseAllDropdowns()
+                if button == "LeftButton" and IsShiftKeyDown() then
+                    ui.viewMode = "BEASTS"
+                    ui.selectedTomeFilter = self.tome.id
+                    ui.selectedFamily = "ALL"
+                    ui.selectedSpec = "ALL"
+                    ui.selectedRole = "ALL"
+                    ui.currentPage = 1
+                    ui.selectedBeast = nil
+                    addon:RefreshUI()
+                    return
+                end
+                ui.selectedTome = self.tome
+                if ui.sideDock and not ui.sideDock:IsShown() then
+                    ui.sideDock:Show()
+                end
+                addon:RefreshUI()
+                if button == "RightButton" then
+                    addon:NavigateToBeast(self.tome, 1, false)
+                end
+                return
+            end
+
             if not self.beast then return end
             CloseAllDropdowns()
             ui.selectedBeast = self.beast
@@ -969,6 +1054,7 @@ function addon:InitUI()
     local dockTitle = dockHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     dockTitle:SetPoint("CENTER", dockHeader, "CENTER", 0, 0)
     dockTitle:SetText(ICON_PAW .. " |cffffd100Досье питомца|r")
+    ui.dockTitle = dockTitle
 
     local dockClose = CreateWardrobeButton(dockHeader, 22, 22, "X", false)
     dockClose:SetPoint("RIGHT", dockHeader, "RIGHT", -4, 0)
@@ -1050,7 +1136,9 @@ function addon:InitUI()
     local btnNavigate = CreateWardrobeButton(dock, 354, 26, ICON_PIN .. " Проложить путь к зверю (TomTom + Карта)", true)
     btnNavigate:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 10, 36)
     btnNavigate:SetScript("OnClick", function()
-        if ui.selectedBeast then
+        if ui.viewMode == "TOMES" and ui.selectedTome then
+            addon:NavigateToBeast(ui.selectedTome, nil, false)
+        elseif ui.selectedBeast then
             addon:NavigateToBeast(ui.selectedBeast, nil, false)
         end
     end)
@@ -1059,15 +1147,20 @@ function addon:InitUI()
     local btnShowMap = CreateWardrobeButton(dock, 88, 22, "На карте", false)
     btnShowMap:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 10, 10)
     btnShowMap:SetScript("OnClick", function()
-        if ui.selectedBeast then
+        if ui.viewMode == "TOMES" and ui.selectedTome then
+            addon:NavigateToBeast(ui.selectedTome, 1, true)
+        elseif ui.selectedBeast then
             addon:NavigateToBeast(ui.selectedBeast, 1, true)
         end
     end)
+    ui.btnShowMap = btnShowMap
 
     local btnToggleCol = CreateWardrobeButton(dock, 118, 22, ICON_READY .. " Отметить своим", false)
     btnToggleCol:SetPoint("LEFT", btnShowMap, "RIGHT", 4, 0)
     btnToggleCol:SetScript("OnClick", function()
-        if ui.selectedBeast then
+        if ui.viewMode == "TOMES" and ui.selectedTome then
+            addon:ToggleManualTome(ui.selectedTome.id)
+        elseif ui.selectedBeast then
             addon:ToggleManualCollected(ui.selectedBeast)
         end
     end)
@@ -1076,21 +1169,43 @@ function addon:InitUI()
     local btnWowhead = CreateWardrobeButton(dock, 70, 22, "Wowhead", false)
     btnWowhead:SetPoint("LEFT", btnToggleCol, "RIGHT", 4, 0)
     btnWowhead:SetScript("OnClick", function()
-        if ui.selectedBeast and ui.selectedBeast.npcID then
+        if ui.viewMode == "TOMES" and ui.selectedTome then
+            -- В режиме Фолиантов эта кнопка открывает всех зверей, которых разблокирует этот фолиант!
+            ui.viewMode = "BEASTS"
+            ui.selectedTomeFilter = ui.selectedTome.id
+            ui.selectedFamily = "ALL"
+            ui.selectedSpec = "ALL"
+            ui.selectedRole = "ALL"
+            ui.currentPage = 1
+            ui.selectedBeast = nil
+            addon:RefreshUI()
+        elseif ui.selectedBeast and ui.selectedBeast.npcID then
             local url = string.format("https://www.wowhead.com/ru/npc=%d", ui.selectedBeast.npcID)
             addon:ShowCopyLinkPopup(url, ui.selectedBeast.name .. " — Wowhead")
         end
     end)
+    ui.btnWowhead = btnWowhead
 
     local btnPetopia = CreateWardrobeButton(dock, 66, 22, "Petopia", false)
     btnPetopia:SetPoint("LEFT", btnWowhead, "RIGHT", 4, 0)
     btnPetopia:SetScript("OnClick", function()
-        if ui.selectedBeast then
+        if ui.viewMode == "TOMES" and ui.selectedTome then
+            local url
+            if ui.selectedTome.itemID then
+                url = string.format("https://www.wowhead.com/ru/item=%d", ui.selectedTome.itemID)
+            elseif ui.selectedTome.questID then
+                url = string.format("https://www.wowhead.com/ru/quest=%d", ui.selectedTome.questID)
+            else
+                url = "https://www.wow-petopia.com/"
+            end
+            addon:ShowCopyLinkPopup(url, ui.selectedTome.name .. " — Wowhead")
+        elseif ui.selectedBeast then
             local slug = ui.selectedBeast.lookID or ui.selectedBeast.id
             local url = string.format("https://www.wow-petopia.com/look.php?id=%s", tostring(slug))
             addon:ShowCopyLinkPopup(url, ui.selectedBeast.name .. " — Petopia")
         end
     end)
+    ui.btnPetopia = btnPetopia
 
     self:InitLDB()
     self:HookCollectionsJournal()
@@ -1162,7 +1277,24 @@ end
 -- ОБНОВЛЕНИЕ РАМКИ КАРТОЧКИ И ФИЛЬТРАЦИЯ СЕТКИ
 -- ============================================================================
 function addon:UpdateCardBorder(card)
-    if not card or not card.beast then return end
+    if not card then return end
+    if card.tome then
+        local isSelected = (ui.selectedTome and ui.selectedTome.id == card.tome.id)
+        local isLearned = self:IsTomeLearned(card.tome.id)
+        if isSelected then
+            card:SetBackdropColor(0.16, 0.13, 0.05, 0.98)
+            card:SetBackdropBorderColor(1.0, 0.84, 0.15, 1.0)
+        elseif isLearned then
+            card:SetBackdropColor(0.05, 0.10, 0.06, 0.96)
+            card:SetBackdropBorderColor(0.18, 0.65, 0.30, 0.95)
+        else
+            card:SetBackdropColor(0.06, 0.05, 0.04, 0.96)
+            card:SetBackdropBorderColor(0.45, 0.35, 0.18, 1.0)
+        end
+        return
+    end
+
+    if not card.beast then return end
     local isSelected = (ui.selectedBeast and ui.selectedBeast.id == card.beast.id)
     local isCollected = self:IsBeastCollected(card.beast)
 
@@ -1237,6 +1369,19 @@ local function BeastMatchesFilters(beast)
     local fam = addon.FamilyByID[beast.family]
     if not fam then return false end
 
+    if ui.selectedTomeFilter then
+        local hasTome = false
+        for _, tk in ipairs(beast.tomes or {}) do
+            if tk == ui.selectedTomeFilter then
+                hasTome = true
+                break
+            end
+        end
+        if not hasTome then
+            return false
+        end
+    end
+
     if ui.selectedFamily ~= "ALL" then
         if beast.family ~= ui.selectedFamily then
             return false
@@ -1300,6 +1445,97 @@ end
 
 function addon:RefreshSideDock()
     if not ui.sideDock or not ui.sideDock:IsShown() then return end
+
+    -- Режим вкладки «Фолианты (11)» — подробный гайд и маршрут в стиле MountCollector!
+    if ui.viewMode == "TOMES" then
+        if ui.dockTitle then
+            ui.dockTitle:SetText(ICON_BOOK .. " |cffffd100Досье фолианта|r")
+        end
+        local tome = ui.selectedTome
+        if not tome then
+            ui.dockBeastName:SetText("Выбери фолиант в сетке")
+            ui.dockSubTitle:SetText("")
+            ui.detailsFS:SetText("")
+            return
+        end
+
+        ApplyBeastToModel(ui.bigModel, tome, 0.45)
+
+        ui.dockBeastName:SetText(tome.name)
+        ui.dockSubTitle:SetText((tome.enName and (tome.enName .. " • ") or "") .. (tome.categoryName or ""))
+
+        local learned = self:IsTomeLearned(tome.id)
+        if learned then
+            ui.dockStatusBadge:SetText(ICON_READY .. " |cff00ff96Навык изучен|r")
+            ui.btnToggleCol:SetText("Снять отметку")
+        else
+            ui.dockStatusBadge:SetText(ICON_STAR .. " |cffff8800Ещё не изучен|r")
+            ui.btnToggleCol:SetText(ICON_READY .. " Отметить изуч.")
+        end
+
+        if tome.accountWide then
+            ui.dockRarityBadge:SetText("|cff00ccffНа весь аккаунт|r")
+            ui.dockRarityBadge:SetTextColor(0.2, 0.85, 1.0)
+        else
+            ui.dockRarityBadge:SetText("|cffffaa00На персонажа|r")
+            ui.dockRarityBadge:SetTextColor(1.0, 0.72, 0.2)
+        end
+
+        ui.btnNavigate:SetText(ICON_PIN .. " Проложить маршрут за книгой (TomTom + Карта)")
+        if ui.btnWowhead then
+            ui.btnWowhead:SetText(string.format("Звери (%d)", tome.beastCount or 0))
+        end
+        if ui.btnPetopia then
+            ui.btnPetopia:SetText("Wowhead")
+        end
+
+        local lines = {}
+        table.insert(lines, string.format("%s |cffffd100Что открывает:|r |cff66ff99%s|r", ICON_BOOK, tome.categoryName or tome.name))
+        table.insert(lines, string.format("   • |cffffcc00Моделей в нашей базе:|r |cffffffff%d|r (кнопка «Звери (%d)» внизу покажет их все!)", tome.beastCount or 0, tome.beastCount or 0))
+        if tome.accountWide then
+            table.insert(lines, "   • |cffffcc00Разблокировка:|r |cff00ccffНа весь аккаунт (Отряд)|r — достаточно получить один раз!")
+        else
+            table.insert(lines, "   • |cffffcc00Разблокировка:|r |cffffaa00Только на текущего охотника|r (альтам нужно получать отдельно).")
+        end
+        if tome.autoRaceText then
+            table.insert(lines, "   • |cffffcc00Умеют с рождения без книги:|r |cff00ff96" .. tome.autoRaceText .. "|r")
+        end
+
+        if tome.howToObtain then
+            table.insert(lines, " ")
+            table.insert(lines, ICON_STAR .. " |cffffd100Где и как достать (подробно):|r")
+            table.insert(lines, "|cffffffff" .. tome.howToObtain .. "|r")
+        end
+
+        table.insert(lines, " ")
+        table.insert(lines, ICON_PIN .. " |cffffd100Локация и точки маршрута:|r")
+        table.insert(lines, string.format("   • |cff00ccffЗона:|r |cffffffff%s|r", tome.zone or "Неизвестно"))
+        if tome.coords and #tome.coords > 0 then
+            for i, c in ipairs(tome.coords) do
+                local notePart = c.note and (" — " .. c.note) or ""
+                table.insert(lines, string.format("   • |cffffd100Точка %d:|r |cff00ff96%.1f, %.1f|r%s", i, c.x, c.y, notePart))
+            end
+        end
+
+        local fullText = table.concat(lines, "\n")
+        ui.detailsFS:SetText(fullText)
+
+        local textH = ui.detailsFS:GetStringHeight() or 220
+        ui.infoContent:SetHeight(math.max(180, textH + 16))
+        return
+    end
+
+    if ui.dockTitle then
+        ui.dockTitle:SetText(ICON_PAW .. " |cffffd100Досье питомца|r")
+    end
+    ui.btnNavigate:SetText(ICON_PIN .. " Проложить путь к зверю (TomTom + Карта)")
+    if ui.btnWowhead then
+        ui.btnWowhead:SetText("Wowhead")
+    end
+    if ui.btnPetopia then
+        ui.btnPetopia:SetText("Petopia")
+    end
+
     local beast = ui.selectedBeast
     if not beast then
         ui.dockBeastName:SetText("Выбери зверя в сетке")
@@ -1404,8 +1640,12 @@ end
 function addon:RefreshUI()
     if not ui.mainFrame or not ui.mainFrame:IsShown() then return end
 
-    ui.tabAllModels:SetActiveTab(not ui.onlyUncollected)
-    ui.tabMissing:SetActiveTab(ui.onlyUncollected)
+    local isTomesMode = (ui.viewMode == "TOMES")
+    ui.tabAllModels:SetActiveTab(not isTomesMode and not ui.onlyUncollected)
+    ui.tabMissing:SetActiveTab(not isTomesMode and ui.onlyUncollected)
+    if ui.tabTomes then
+        ui.tabTomes:SetActiveTab(isTomesMode)
+    end
 
     local activeRoleLabel = "Трейты и абилки [v]"
     for _, rf in ipairs(ROLE_FILTERS) do
@@ -1415,13 +1655,87 @@ function addon:RefreshUI()
         end
     end
     ui.roleDropdownBtn:SetText(activeRoleLabel)
-    ui.roleDropdownBtn:SetActiveTab(ui.selectedRole ~= "ALL")
+    ui.roleDropdownBtn:SetActiveTab(not isTomesMode and ui.selectedRole ~= "ALL")
 
     self:RefreshFamilyStrip()
 
+    -- Режим вкладки «Фолианты (11)»
+    if isTomesMode then
+        ui.winTitle:SetText("|cffffd100Звери охотника — Фолианты и предметы приручения (11)|r")
+        ui.portraitIcon:SetTexture("Interface\\ICONS\\INV_Misc_Book_09")
+
+        local learnedTomes, totalTomes = self:GetTomeProgress()
+        ui.progBar:SetMinMaxValues(0, math.max(1, totalTomes))
+        ui.progBar:SetValue(learnedTomes)
+        ui.progText:SetText(string.format("Фолианты: %d / %d", learnedTomes, totalTomes))
+
+        wipe(ui.filteredTomes)
+        local s = ui.searchText or ""
+        for _, tKey in ipairs(self.TamingTomesOrder or {}) do
+            local tome = self.TamingTomes and self.TamingTomes[tKey]
+            if tome then
+                local match = true
+                if s ~= "" then
+                    match = (tome.name and string.find(string.lower(tome.name), s, 1, true))
+                        or (tome.enName and string.find(string.lower(tome.enName), s, 1, true))
+                        or (tome.categoryName and string.find(string.lower(tome.categoryName), s, 1, true))
+                        or (tome.searchKeywords and string.find(string.lower(tome.searchKeywords), s, 1, true))
+                        or (tome.source and string.find(string.lower(tome.source), s, 1, true))
+                end
+                if match then
+                    table.insert(ui.filteredTomes, tome)
+                end
+            end
+        end
+
+        ui.totalPages = 1
+        ui.currentPage = 1
+        ui.pageText:SetText("Стр. 1/1")
+        ui.prevBtn:SetAlpha(0.4)
+        ui.nextBtn:SetAlpha(0.4)
+
+        if not ui.selectedTome and ui.filteredTomes[1] then
+            ui.selectedTome = ui.filteredTomes[1]
+        end
+
+        for i = 1, PAGE_SIZE do
+            local card = ui.gridCards[i]
+            local tome = ui.filteredTomes[i]
+            if tome then
+                card.tome = tome
+                card.beast = nil
+                card.nameFS:SetText(tome.shortTitle or tome.name)
+
+                local scopeTag = tome.accountWide and "|cff00ccffАкк|r" or "|cffffaa00Перс|r"
+                card.roleBadge:SetText(string.format("%s |cffffd100(%d)|r", scopeTag, tome.beastCount or 0))
+
+                if self:IsTomeLearned(tome.id) then
+                    card.checkBadge:Show()
+                else
+                    card.checkBadge:Hide()
+                end
+
+                self:UpdateCardBorder(card)
+                card:Show()
+                ApplyBeastToModel(card.model, tome, 0.42)
+            else
+                card.tome = nil
+                card.beast = nil
+                card:Hide()
+            end
+        end
+
+        self:RefreshSideDock()
+        return
+    end
+
     local activeFamDef = (ui.selectedFamily ~= "ALL") and self.FamilyByID[ui.selectedFamily] or nil
     local activeSpecDef = (ui.selectedSpec ~= "ALL") and self.PetSpecs[ui.selectedSpec] or nil
-    if activeFamDef then
+    local activeTomeDef = ui.selectedTomeFilter and self.TamingTomes and self.TamingTomes[ui.selectedTomeFilter] or nil
+    if activeTomeDef then
+        ui.winTitle:SetText("|cffffd100Звери охотника — " .. activeTomeDef.name .. "|r")
+        ui.portraitIcon:SetTexture("Interface\\ICONS\\INV_Misc_Book_09")
+    elseif activeFamDef then
         ui.winTitle:SetText("|cffffd100Звери охотника — " .. activeFamDef.name .. "|r")
         ui.portraitIcon:SetTexture(activeFamDef.icon or "Interface\\ICONS\\Ability_Hunter_BeastMastery")
     elseif activeSpecDef then
@@ -1445,10 +1759,11 @@ function addon:RefreshUI()
     end
 
     -- Если при вводе поискового запроса в выбранном семействе/спеке ничего не нашлось — ищем сразу по всем 61 семейству!
-    if #ui.filteredBeasts == 0 and ui.searchText ~= "" and (ui.selectedFamily ~= "ALL" or ui.selectedSpec ~= "ALL" or ui.selectedRole ~= "ALL") then
+    if #ui.filteredBeasts == 0 and ui.searchText ~= "" and (ui.selectedFamily ~= "ALL" or ui.selectedSpec ~= "ALL" or ui.selectedRole ~= "ALL" or ui.selectedTomeFilter ~= nil) then
         ui.selectedFamily = "ALL"
         ui.selectedSpec = "ALL"
         ui.selectedRole = "ALL"
+        ui.selectedTomeFilter = nil
         ui.roleDropdownBtn:SetText("Трейты и абилки [v]")
         ui.roleDropdownBtn:SetActiveTab(false)
         ui.winTitle:SetText("|cffffd100Звери охотника — Все 61 семейство|r")
@@ -1492,6 +1807,7 @@ function addon:RefreshUI()
         local card = ui.gridCards[i]
         local beast = ui.filteredBeasts[startIdx + i]
         if beast then
+            card.tome = nil
             card.beast = beast
             card.nameFS:SetText(beast.name)
 
@@ -1522,6 +1838,7 @@ function addon:RefreshUI()
             card:Show()
             ApplyBeastToModel(card.model, beast, 0.42)
         else
+            card.tome = nil
             card.beast = nil
             card:Hide()
         end
