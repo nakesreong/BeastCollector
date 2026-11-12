@@ -313,7 +313,7 @@ local ROLE_FILTERS = {
     { id = "DODGE",        short = "|TInterface\\ICONS\\Spell_Nature_Invisibilty:13:13:0:0|t Уклонение +30%", label = "|TInterface\\ICONS\\Spell_Nature_Invisibilty:14:14:0:0|t Уклонение пета +30% / Стелс",  desc = "Абилка семейства: повышает уклонение питомца на 30% (Кошки, Лисицы, Змеи, Обезьяны, Дракондоры, Шерстоперые, Прыгуны, Крылатые змеи)." },
     { id = "HEAL",         short = "|T236165:13:13:0:0|t Подхил (Дух зверя)",                                label = "|T236165:14:14:0:0|t Духовное исцеление (Подхил)",                                     desc = "Уникальная способность Духов зверя: лечит выбранного союзника или самого охотника и позволяет ходить в стелсе." },
     { id = "EXOTIC",       short = "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:13:13:0:0|t Экзотика (БМ)", label = "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:14:14:0:0|t Экзотика (только БМ)",     desc = "Экзотические семейства, доступные только специализации «Повелитель Зверей»." },
-    { id = "TOME",         short = "|TInterface\\ICONS\\INV_Misc_Book_09:13:13:0:0|t С фолиантом",            label = "|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t Требуется Фолиант приручения",        desc = "Семейства, требующие изучения особых книг приручения (Дикороги, Механизмы, Шерстоперые, Кровавые чудовища, Малые дракониды, Гаргоны)." },
+    { id = "TOME",         short = "|TInterface\\ICONS\\INV_Misc_Book_09:13:13:0:0|t С фолиантом",            label = "|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t Требуется Фолиант / Предмет",  desc = "Звери и семейства, требующие изучения особых книг или предметов приручения (Флорафавны, Дикороги, Механизмы, Шерстоперые, Кровавые чудовища, Нежить, Облачные змеи, Малые дракониды, Гаргоны)." },
     { id = "RARE_ONLY",    short = ICON_STAR .. " Редкие и Секреты",                                         label = ICON_STAR .. " Только Редкие / Духи / Секретные",                                      desc = "Показать только рарников, секретных питомцев, боссов подземелий и Духов зверя." },
 }
 
@@ -444,7 +444,7 @@ function addon:InitUI()
 
     local searchPlaceholder = searchFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     searchPlaceholder:SetPoint("LEFT", searchFrame, "LEFT", 8, 0)
-    searchPlaceholder:SetText("Поиск зверя / зоны...")
+    searchPlaceholder:SetText("Поиск зверя / зоны / книги...")
 
     local clearSearchBtn = CreateWardrobeButton(searchFrame, 16, 16, "x", false)
     clearSearchBtn:SetPoint("RIGHT", searchFrame, "RIGHT", -3, 0)
@@ -883,6 +883,14 @@ function addon:InitUI()
                 GameTooltip:AddDoubleLine("Семейство: " .. fam.name, spec and (spec.color .. spec.name .. "|r") or "")
                 GameTooltip:AddLine("Умеет: |cff00ff96" .. (fam.familySkill or "") .. "|r", 0.9, 0.9, 0.9, true)
             end
+            if self.beast.tomes and #self.beast.tomes > 0 then
+                for _, tKey in ipairs(self.beast.tomes) do
+                    local tome = addon.TamingTomes and addon.TamingTomes[tKey]
+                    if tome then
+                        GameTooltip:AddLine(ICON_BOOK .. " |cffffaa00Книга:|r " .. tome.name, 1.0, 0.85, 0.55, true)
+                    end
+                end
+            end
             if self.beast.zone then
                 GameTooltip:AddLine("Где искать: |cff00ccff" .. self.beast.zone .. "|r", 0.9, 0.9, 0.9)
             end
@@ -1216,7 +1224,7 @@ local function BeastMatchesRoleFilter(beast, fam, roleID)
     elseif roleID == "EXOTIC" then
         return fam.exotic == true
     elseif roleID == "TOME" then
-        return fam.tome ~= nil
+        return (beast.tomes and #beast.tomes > 0) or (fam.tome ~= nil and beast.family ~= "stonehound")
     elseif roleID == "RARE_ONLY" then
         local r = beast.rarity
         return (r == "SPIRIT" or r == "SECRET" or r == "RARE" or r == "BOSS")
@@ -1253,21 +1261,37 @@ local function BeastMatchesFilters(beast)
         local s = ui.searchText
         local matchName = string.find(string.lower(beast.name or ""), s, 1, true)
         local matchSub = beast.subTitle and string.find(string.lower(beast.subTitle), s, 1, true)
+        local matchRuMod = beast.ruModelGroup and string.find(string.lower(beast.ruModelGroup), s, 1, true)
         local matchMod = beast.modelGroup and string.find(string.lower(beast.modelGroup), s, 1, true)
         local matchZone = beast.zone and string.find(string.lower(beast.zone), s, 1, true)
         local matchFam = fam.name and string.find(string.lower(fam.name), s, 1, true)
         local matchSkill = fam.familySkill and string.find(string.lower(fam.familySkill), s, 1, true)
-        if not (matchName or matchSub or matchMod or matchZone or matchFam or matchSkill) then
-            local matchNpc = false
-            if beast.npcs then
+        if not (matchName or matchSub or matchRuMod or matchMod or matchZone or matchFam or matchSkill) then
+            local matchExtra = false
+            if beast.tomes and #beast.tomes > 0 then
+                for _, tKey in ipairs(beast.tomes) do
+                    local tome = addon.TamingTomes and addon.TamingTomes[tKey]
+                    if tome then
+                        if (tome.name and string.find(string.lower(tome.name), s, 1, true))
+                            or (tome.categoryName and string.find(string.lower(tome.categoryName), s, 1, true))
+                            or (tome.searchKeywords and string.find(string.lower(tome.searchKeywords), s, 1, true))
+                            or (tome.source and string.find(string.lower(tome.source), s, 1, true))
+                        then
+                            matchExtra = true
+                            break
+                        end
+                    end
+                end
+            end
+            if not matchExtra and beast.npcs then
                 for _, n in ipairs(beast.npcs) do
                     if n.name and string.find(string.lower(n.name), s, 1, true) then
-                        matchNpc = true
+                        matchExtra = true
                         break
                     end
                 end
             end
-            if not matchNpc then return false end
+            if not matchExtra then return false end
         end
     end
 
@@ -1319,15 +1343,24 @@ function addon:RefreshSideDock()
         end
     end
 
-    if fam and fam.tome then
-        local learned, tome = self:IsTomeLearned(fam.tome)
-        if tome then
-            table.insert(lines, " ")
-            if learned then
-                table.insert(lines, string.format("%s |cff00ff96Спец-навык изучен:|r %s", ICON_BOOK, tome.name))
-            else
-                table.insert(lines, string.format("%s |cffff5533Требуется изучить:|r |cffffffff%s|r", ICON_BOOK, tome.name))
-                table.insert(lines, "|cffffaa66   Где взять книгу:|r " .. (tome.source or ""))
+    local requiredTomes = beast.tomes or {}
+    if #requiredTomes > 0 then
+        for _, tKey in ipairs(requiredTomes) do
+            local learned, tome = self:IsTomeLearned(tKey)
+            if tome then
+                table.insert(lines, " ")
+                if tome.categoryName then
+                    table.insert(lines, string.format("%s |cffffd100Особая группа:|r |cff66ff99%s|r", ICON_BOOK, tome.categoryName))
+                end
+                if learned then
+                    table.insert(lines, string.format("   • |cff00ff96Навык изучен:|r %s", tome.name))
+                elseif tome.questID then
+                    table.insert(lines, string.format("   • |cffff5533Требуется предмет/книга:|r |cffffffff%s|r", tome.name))
+                    table.insert(lines, "|cffffaa66   Где взять:|r " .. (tome.source or ""))
+                else
+                    table.insert(lines, string.format("   • |cffffaa00Требуется предмет/книга:|r |cffffffff%s|r", tome.name))
+                    table.insert(lines, "|cffffaa66   Где взять:|r " .. (tome.source or ""))
+                end
             end
         end
     end
@@ -1411,6 +1444,23 @@ function addon:RefreshUI()
         end
     end
 
+    -- Если при вводе поискового запроса в выбранном семействе/спеке ничего не нашлось — ищем сразу по всем 61 семейству!
+    if #ui.filteredBeasts == 0 and ui.searchText ~= "" and (ui.selectedFamily ~= "ALL" or ui.selectedSpec ~= "ALL" or ui.selectedRole ~= "ALL") then
+        ui.selectedFamily = "ALL"
+        ui.selectedSpec = "ALL"
+        ui.selectedRole = "ALL"
+        ui.roleDropdownBtn:SetText("Трейты и абилки [v]")
+        ui.roleDropdownBtn:SetActiveTab(false)
+        ui.winTitle:SetText("|cffffd100Звери охотника — Все 61 семейство|r")
+        ui.portraitIcon:SetTexture("Interface\\ICONS\\Ability_Hunter_BeastMastery")
+        self:RefreshFamilyStrip()
+        for _, beast in ipairs(self.Beasts or {}) do
+            if BeastMatchesFilters(beast) then
+                table.insert(ui.filteredBeasts, beast)
+            end
+        end
+    end
+
     -- Если выбрано конкретное семейство/спек, с которым несовместим старый фильтр трейта — мягко сбрасываем фильтр трейта
     if #ui.filteredBeasts == 0 and ui.selectedRole ~= "ALL" and ui.searchText == "" and not ui.onlyUncollected then
         ui.selectedRole = "ALL"
@@ -1456,6 +1506,9 @@ function addon:RefreshUI()
             end
             if fam and fam.exotic then
                 table.insert(badges, 1, "|cffd966ffБМ|r")
+            end
+            if beast.tomes and #beast.tomes > 0 then
+                table.insert(badges, "|cffffcc33Фол|r")
             end
             card.roleBadge:SetText(table.concat(badges, " "))
 

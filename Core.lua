@@ -25,6 +25,45 @@ addon.BeastByID = {}
 addon.BeastByNpcID = {}
 addon.BeastByDisplayID = {}
 
+function addon:GetBeastTomes(beast)
+    local res = {}
+    if not beast then return res end
+
+    local function addTome(key)
+        if not key then return end
+        for _, k in ipairs(res) do
+            if k == key then return end
+        end
+        table.insert(res, key)
+    end
+
+    local mgTomes = self.ModelGroupTomes and beast.modelGroup and self.ModelGroupTomes[beast.modelGroup]
+    if mgTomes then
+        for _, tKey in ipairs(mgTomes) do
+            addTome(tKey)
+        end
+    end
+
+    local lid = string.lower(beast.lookID or beast.id or "")
+    if string.find(lid, "diseased", 1, true)
+        or string.find(lid, "undead", 1, true)
+        or string.find(lid, "plague", 1, true)
+        or string.find(lid, "skeletal", 1, true)
+        or string.find(lid, "zombie", 1, true)
+    then
+        addTome("UNDEAD")
+    end
+
+    if #res == 0 then
+        local fam = self.FamilyByID and self.FamilyByID[beast.family]
+        if fam and fam.tome and beast.family ~= "stonehound" then
+            addTome(fam.tome)
+        end
+    end
+
+    return res
+end
+
 function addon:BuildIndices()
     wipe(self.FamilyByID)
     wipe(self.BeastByID)
@@ -39,6 +78,15 @@ function addon:BuildIndices()
     for idx, beast in ipairs(self.Beasts or {}) do
         beast.order = idx
         self.BeastByID[beast.id] = beast
+        if self.ModelGroupRuNames and beast.modelGroup and self.ModelGroupRuNames[beast.modelGroup] then
+            beast.ruModelGroup = self.ModelGroupRuNames[beast.modelGroup]
+            if beast.subTitle and not string.find(beast.subTitle, beast.ruModelGroup, 1, true) then
+                beast.subTitle = beast.ruModelGroup .. " • " .. beast.subTitle
+            elseif not beast.subTitle then
+                beast.subTitle = beast.ruModelGroup
+            end
+        end
+        beast.tomes = self:GetBeastTomes(beast)
         if beast.npcID then
             self.BeastByNpcID[beast.npcID] = beast
         end
@@ -337,6 +385,14 @@ function addon:InitTooltips()
         )
         if fam and fam.familySkill then
             tooltip:AddLine("   |cffffd100Умеет:|r " .. fam.familySkill, 0.9, 0.9, 0.9, true)
+        end
+        if beast.tomes and #beast.tomes > 0 then
+            for _, tKey in ipairs(beast.tomes) do
+                local tome = self.TamingTomes and self.TamingTomes[tKey]
+                if tome then
+                    tooltip:AddLine("   |TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t |cffffaa00Книга:|r " .. tome.name, 0.95, 0.85, 0.65, true)
+                end
+            end
         end
         if isCollected then
             tooltip:AddLine("   |TInterface\\RaidFrame\\ReadyCheck-Ready:14:14:0:0|t |cff00ff96" .. (colText or "Уже в коллекции") .. "|r")
