@@ -455,13 +455,16 @@ local function GetMapMacroRegion(mapID)
     local _, ancestors = GetMapAncestry(mapID)
 
     -- Изолированные подзоны, требующие отдельного выхода:
-    if mapID == 2413 or ancestors[2413] then return "HARANDAR" end
+    if mapID == 2413 or mapID == 2576 or ancestors[2413] then return "HARANDAR" end
     if mapID == 2405 or ancestors[2405] then return "VOIDSTORM" end
     if mapID == 2200 or ancestors[2200] then return "EMERALD_DREAM" end
     if mapID == 2133 or ancestors[2133] then return "ZARALEK" end
 
-    -- Midnight (Кель'Талас / Луносвет / Зул'Аман)
-    if mapID == 2393 or mapID == 2395 or mapID == 2437 or ancestors[2393] or ancestors[2395] or ancestors[2437] or ancestors[2424] then
+    -- Midnight (Кель'Талас 2537 / Луносвет 2393, 2605 / Леса Вечной Песни 2395, 2594 / Зул'Аман 2437)
+    -- Важно проверять ДО Восточных королевств (13), т.к. у 2537 родитель = 13!
+    if mapID == 2393 or mapID == 2605 or mapID == 2395 or mapID == 2594 or mapID == 2437 or mapID == 2537
+        or ancestors[2393] or ancestors[2395] or ancestors[2437] or ancestors[2537] or ancestors[2424]
+    then
         return "MIDNIGHT_QUELTHALAS"
     end
     -- Каз Алгар (TWW)
@@ -618,7 +621,7 @@ local function ResolvePinnableMapCoords(mapID, normX, normY)
 end
 
 -- Ставит активную точку Blizzard (SuperTrack) + стрелку TomTom для ТЕКУЩЕГО шага маршрута
-function addon:ActivateCurrentRouteStep()
+function addon:ActivateCurrentRouteStep(silent)
     local route = self.activePortalRoute
     if not route or not route.steps or #route.steps == 0 then return end
 
@@ -638,7 +641,7 @@ function addon:ActivateCurrentRouteStep()
         and string.format("[Шаг %d/%d] %s", route.currentStep, totalSteps, step.note or route.targetName)
         or string.format("BeastCollector: %s (%s)", route.targetName, step.note or "")
 
-    -- 1. Ставим стрелку TomTom на текущий шаг (и на финальную цель, если мы ещё в пути)
+    -- 1. Ставим стрелку TomTom на текущий шаг (и на подкарту, если задана subMapID, например Логово 2576 или Луносвет 2393)
     if _G.TomTom and _G.TomTom.AddWaypoint then
         local ok, uid = pcall(_G.TomTom.AddWaypoint, _G.TomTom, step.mapID, step.x / 100, step.y / 100, {
             title = stepLabel,
@@ -653,6 +656,18 @@ function addon:ActivateCurrentRouteStep()
                 pcall(_G.TomTom.SetCrazyArrow, _G.TomTom, uid, 15, stepLabel)
             end
         end
+        if step.subMapID and step.subX and step.subY then
+            local okSub, uidSub = pcall(_G.TomTom.AddWaypoint, _G.TomTom, step.subMapID, step.subX / 100, step.subY / 100, {
+                title = stepLabel,
+                persistent = false,
+                minimap = true,
+                world = true,
+                crazy = true,
+            })
+            if okSub and uidSub then
+                table.insert(self.portalTomTomUids, uidSub)
+            end
+        end
     end
 
     -- 2. Ставим нативную путевую точку Blizzard (с проекцией на родительскую карту, если нужно)
@@ -665,7 +680,7 @@ function addon:ActivateCurrentRouteStep()
             pcall(C_Map.SetUserWaypoint, uiPt)
             if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
                 pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
-                C_Timer.After(0.08, function()
+                C_Timer.After(0.10, function()
                     if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
                         pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
                     end
@@ -674,25 +689,27 @@ function addon:ActivateCurrentRouteStep()
         end
     end
 
-    local mapInfo = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(step.mapID)
-    local zoneName = (mapInfo and SafeNotSecret(mapInfo.name) and mapInfo.name) or step.zone or "Локация"
-    if totalSteps > 1 then
-        print(string.format(
-            "|cff00ff96[BeastCollector Маршрут %d/%d]|r Стрелка миникарты ведёт: |cffffd100%s|r — |cff00ccff%s (%.1f, %.1f)|r",
-            route.currentStep, totalSteps, step.note or route.targetName, zoneName, step.x, step.y
-        ))
-    else
-        print(string.format(
-            "|cff00ff96[BeastCollector]|r Проложен путь к |cffffd100%s|r: |cff00ccff%s (%.1f, %.1f)|r%s",
-            route.targetName, zoneName, step.x, step.y, step.note and (" — " .. step.note) or ""
-        ))
+    if not silent then
+        local mapInfo = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(step.mapID)
+        local zoneName = step.zone or (mapInfo and SafeNotSecret(mapInfo.name) and mapInfo.name) or "Локация"
+        if totalSteps > 1 then
+            print(string.format(
+                "|cff00ff96[BeastCollector Маршрут %d/%d]|r Стрелка миникарты ведёт: |cffffd100%s|r — |cff00ccff%s (%.1f, %.1f)|r",
+                route.currentStep, totalSteps, step.note or route.targetName, zoneName, step.x, step.y
+            ))
+        else
+            print(string.format(
+                "|cff00ff96[BeastCollector]|r Проложен путь к |cffffd100%s|r: |cff00ccff%s (%.1f, %.1f)|r%s",
+                route.targetName, zoneName, step.x, step.y, step.note and (" — " .. step.note) or ""
+            ))
+        end
     end
 end
 
 -- Проверяет при смене зоны или движении, не перешёл ли игрок на следующий шаг маршрута
 function addon:CheckPortalRouteProgress()
     local route = self.activePortalRoute
-    if not route or not route.steps or route.currentStep >= #route.steps then return end
+    if not route or not route.steps or #route.steps == 0 then return end
 
     local playerMapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
     if not playerMapID then return end
@@ -703,39 +720,46 @@ function addon:CheckPortalRouteProgress()
     local finalRegion = GetMapMacroRegion(finalStep.mapID)
     local finalInstID = GetMapInstanceID(finalStep.mapID)
 
-    -- 1. Если игрок уже в целевой зоне или на том же континенте, что и финальная цель (и это не изолированная пещера)
+    -- 1. Если игрок уже в целевой зоне или на том же континенте, что и финальная цель
     if playerMapID == finalStep.mapID
         or (playerRegion == finalRegion and finalRegion ~= "HARANDAR" and finalRegion ~= "VOIDSTORM" and finalRegion ~= "EMERALD_DREAM")
         or (playerInstID and finalInstID and playerInstID == finalInstID and playerRegion == finalRegion)
     then
-        route.currentStep = #route.steps
-        self:ActivateCurrentRouteStep()
+        if route.currentStep ~= #route.steps then
+            route.currentStep = #route.steps
+            self:ActivateCurrentRouteStep(false)
+        elseif C_Map and C_Map.HasUserWaypoint and not C_Map.HasUserWaypoint() then
+            self:ActivateCurrentRouteStep(true)
+        end
         return
     end
 
     -- 2. Ищем самый дальний шаг маршрута, в регионе или карте которого сейчас оказался игрок
-    for i = #route.steps, route.currentStep + 1, -1 do
+    for i = #route.steps, 1, -1 do
         local st = route.steps[i]
         local stRegion = GetMapMacroRegion(st.mapID)
-        if playerMapID == st.mapID or playerRegion == stRegion then
-            route.currentStep = i
-            -- Если на новой карте есть динамический портал/выход, уточним координаты
-            if i < #route.steps and st.dynamicScan then
-                local dx, dy, dnote = FindDynamicExitOrPortalOnMap(playerMapID, st.keywords)
-                if dx and dy then
-                    st.mapID = playerMapID
-                    st.x = dx
-                    st.y = dy
-                    if dnote and not st.keepNote then st.note = dnote end
+        if playerMapID == st.mapID or playerMapID == st.subMapID or playerRegion == stRegion then
+            if i > route.currentStep then
+                route.currentStep = i
+                self:ActivateCurrentRouteStep(false)
+            elseif i == route.currentStep then
+                -- Если во время загрузочного экрана или телепорта в Башню магов игра сбросила точку — восстановим её!
+                if C_Map and C_Map.HasUserWaypoint and not C_Map.HasUserWaypoint() then
+                    self:ActivateCurrentRouteStep(true)
+                elseif C_SuperTrack and C_SuperTrack.IsSuperTrackingUserWaypoint and not C_SuperTrack.IsSuperTrackingUserWaypoint() then
+                    pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
                 end
             end
-            self:ActivateCurrentRouteStep()
             return
         end
     end
 end
 
--- Строит цепочку шагов (выход из зоны -> портал в столицу -> портал в нужный континент -> цель)
+-- Строит цепочку шагов по ТОЧНЫМ координатам AreaPOI из базы клиента WoW 12.0 (Wago DB2):
+--   * Харандар (#2413): Корнистый путь в леса Вечной Песни (53.3, 55.5) / внутри Логова (#2576): (64.5, 71.4)
+--   * Луносвет (#2393 / #2395): Зал с порталами — Портал в Штормград (#2393 52.6, 64.5 / #2395 52.6, 25.5), Портал в Оргриммар (#2393 52.2, 65.2 / #2395 52.5, 25.7)
+--   * Штормград (#84): Портал в Деревню Лап'дон / Пандарию (68.7, 17.2 у шара пандаренов) или Зал порталов (48.7, 88.1)
+--   * Оргриммар (#85): Портал в Деревню Медовой Росы / Пандарию (68.6, 40.7) или Зал порталов (57.3, 89.7)
 function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, targetZone, targetNote)
     local steps = {}
     local playerMapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
@@ -755,8 +779,8 @@ function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, tar
     local playerInstID = GetMapInstanceID(playerMapID)
     local targetInstID = GetMapInstanceID(targetMapID)
 
-    -- Если мы уже на одном континенте и ни старт, ни цель не являются изолированной зоной (как Харандар или Изумрудный Сон)
-    if (playerRegion == targetRegion or (playerInstID and targetInstID and playerInstID == targetInstID))
+    -- Если мы уже на одном континенте и ни старт, ни цель не являются изолированной зоной
+    if (playerRegion == targetRegion or (playerInstID and targetInstID and playerInstID == targetInstID and playerRegion == targetRegion))
         and playerRegion ~= "HARANDAR" and targetRegion ~= "HARANDAR"
         and playerRegion ~= "VOIDSTORM" and targetRegion ~= "VOIDSTORM"
         and playerRegion ~= "EMERALD_DREAM" and targetRegion ~= "EMERALD_DREAM"
@@ -773,82 +797,81 @@ function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, tar
 
     local isAlliance = (UnitFactionGroup("player") == "Alliance")
     local capMapID   = isAlliance and 84 or 85
-    local capName    = isAlliance and "Башня магов Штормграда" or "Зал порталов Оргриммара"
-    local capX       = isAlliance and 49.3 or 50.2
-    local capY       = isAlliance and 86.8 or 37.6
+    local capName    = isAlliance and "Зал порталов Штормграда" or "Зал порталов Оргриммара"
+    local capX       = isAlliance and 48.7 or 57.3
+    local capY       = isAlliance and 88.1 or 89.7
     local capRegion  = isAlliance and "EASTERN_KINGDOMS" or "KALIMDOR"
 
     -- ========================================================================
     -- ЭТАП А: ВЫХОД ИЗ ТЕКУЩЕЙ ЗОНЫ / ЭКСПАНШЕНА В ЗАЛ ПОРТАЛОВ СТОЛИЦЫ
     -- ========================================================================
     if playerRegion == "HARANDAR" then
-        -- Ищем портал/выход прямо на карте Харандара (2413)
-        local dx, dy, dnote = FindDynamicExitOrPortalOnMap(2413, { "луносвет", "silvermoon", "оргриммар", "штормград", "portal", "портал", "выход" })
+        -- AreaPOI #8478 / #8784: «Корнистый путь в леса Вечной Песни»
+        -- На карте Харандара (#2413) это (53.3, 55.5), а внутри подкарты Логова (#2576) — (64.5, 71.4)!
         table.insert(steps, {
             mapID = 2413,
-            x = dx or 51.8,
-            y = dy or 50.6,
-            zone = "Харандар",
-            note = dnote or "Выход из Харандара: Портал в Луносвет / Столицу (Логово)",
-            dynamicScan = true,
+            x = 53.3,
+            y = 55.5,
+            subMapID = 2576,
+            subX = 64.5,
+            subY = 71.4,
+            zone = "Харандар (Логово)",
+            note = "Корнистый путь в леса Вечной Песни / Луносвет (Логово, нижний ярус)",
         })
         if targetRegion ~= "MIDNIGHT_QUELTHALAS" then
+            -- AreaPOI #8310 (Штормград: 2393 52.6, 64.5 / 2395 52.6, 25.5) и #8309 (Оргриммар: 2393 52.2, 65.2 / 2395 52.5, 25.7)
+            -- Карта 2393 (Луносвет) имеет флаг CanSetUserWaypoint=false, поэтому ставим пин на 2395 с подкартой 2393!
             table.insert(steps, {
-                mapID = 2393,
-                x = 53.3,
-                y = 66.2,
+                mapID = 2395,
+                x = isAlliance and 52.6 or 52.5,
+                y = isAlliance and 25.5 or 25.7,
+                subMapID = 2393,
+                subX = isAlliance and 52.6 or 52.2,
+                subY = isAlliance and 64.5 or 65.2,
                 zone = "Луносвет",
-                note = isAlliance and "Портал в Штормград (Луносвет)" or "Портал в Оргриммар (Луносвет)",
-                dynamicScan = true,
-                keywords = { "оргриммар", "штормград", "orgrimmar", "stormwind", "портал", "portal" },
+                note = isAlliance and "Зал с порталами Луносвета: Портал в Штормград (52.6, 64.5)" or "Зал с порталами Луносвета: Портал в Оргриммар (52.2, 65.2)",
             })
         end
     elseif playerRegion == "VOIDSTORM" then
-        local dx, dy, dnote = FindDynamicExitOrPortalOnMap(playerMapID, { "луносвет", "silvermoon", "портал", "portal", "выход" })
+        local dx, dy, dnote = FindDynamicExitOrPortalOnMap(playerMapID, { "луносвет", "silvermoon", "portal", "портал", "выход" })
         table.insert(steps, {
             mapID = playerMapID,
             x = dx or 50.0,
             y = dy or 50.0,
             zone = "Буря Бездны",
             note = dnote or "Портал из Бури Бездны в Луносвет",
-            dynamicScan = true,
         })
         if targetRegion ~= "MIDNIGHT_QUELTHALAS" then
             table.insert(steps, {
-                mapID = 2393,
-                x = 53.3,
-                y = 66.2,
+                mapID = 2395,
+                x = isAlliance and 52.6 or 52.5,
+                y = isAlliance and 25.5 or 25.7,
+                subMapID = 2393,
+                subX = isAlliance and 52.6 or 52.2,
+                subY = isAlliance and 64.5 or 65.2,
                 zone = "Луносвет",
-                note = isAlliance and "Портал в Штормград (Луносвет)" or "Портал в Оргриммар (Луносвет)",
-                dynamicScan = true,
+                note = isAlliance and "Зал с порталами Луносвета: Портал в Штормград (52.6, 64.5)" or "Зал с порталами Луносвета: Портал в Оргриммар (52.2, 65.2)",
             })
         end
     elseif playerRegion == "MIDNIGHT_QUELTHALAS" then
-        local dx, dy, dnote = FindDynamicExitOrPortalOnMap(playerMapID, { "оргриммар", "штормград", "портал", "portal" })
-        if dx and dy then
-            table.insert(steps, {
-                mapID = playerMapID,
-                x = dx,
-                y = dy,
-                note = dnote or ("Портал в " .. capName),
-            })
-        else
-            table.insert(steps, {
-                mapID = 2393,
-                x = 53.3,
-                y = 66.2,
-                zone = "Луносвет",
-                note = isAlliance and "Портал в Штормград (Луносвет)" or "Портал в Оргриммар (Луносвет)",
-                dynamicScan = true,
-            })
-        end
+        table.insert(steps, {
+            mapID = 2395,
+            x = isAlliance and 52.6 or 52.5,
+            y = isAlliance and 25.5 or 25.7,
+            subMapID = 2393,
+            subX = isAlliance and 52.6 or 52.2,
+            subY = isAlliance and 64.5 or 65.2,
+            zone = "Луносвет",
+            note = isAlliance and "Зал с порталами Луносвета: Портал в Штормград (52.6, 64.5)" or "Зал с порталами Луносвета: Портал в Оргриммар (52.2, 65.2)",
+        })
     elseif playerRegion == "KHAZ_ALGAR" then
+        -- AreaPOI #7919: Комната порталов зала Основания (41.9, 28.3)
         table.insert(steps, {
             mapID = 2339,
-            x = isAlliance and 51.9 or 57.5,
-            y = isAlliance and 49.0 or 52.8,
+            x = 41.9,
+            y = 28.3,
             zone = "Дорногал",
-            note = isAlliance and "Портал в Штормград (Дорногал)" or "Портал в Оргриммар (Дорногал)",
+            note = isAlliance and "Комната порталов Дорногала: Портал в Штормград" or "Комната порталов Дорногала: Портал в Оргриммар",
         })
     elseif playerRegion == "EMERALD_DREAM" then
         table.insert(steps, {
@@ -861,19 +884,19 @@ function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, tar
         if targetRegion ~= "DRAGON_ISLES" then
             table.insert(steps, {
                 mapID = 2112,
-                x = 58.0,
-                y = 35.4,
+                x = 57.9,
+                y = 35.3,
                 zone = "Вальдраккен",
-                note = "Портал в столицу (Башня Аспектов, Вальдраккен)",
+                note = "Престол Аспектов (Вальдраккен): Портал в столицу",
             })
         end
     elseif playerRegion == "DRAGON_ISLES" then
         table.insert(steps, {
             mapID = 2112,
-            x = 58.0,
-            y = 35.4,
+            x = 57.9,
+            y = 35.3,
             zone = "Вальдраккен",
-            note = "Портал в столицу (Башня Аспектов, Вальдраккен)",
+            note = "Престол Аспектов (Вальдраккен): Портал в столицу",
         })
     elseif playerRegion == "SHADOWLANDS" then
         table.insert(steps, {
@@ -908,12 +931,13 @@ function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, tar
             note = isAlliance and "Портал в Штормград (Даларан)" or "Портал в Оргриммар (Даларан)",
         })
     elseif playerRegion == "PANDARIA" then
+        -- AreaPOI #5892 (Штормград 46.2, 85.2) и #5890 (Оргриммар 28.5, 14.0)
         table.insert(steps, {
             mapID = 371,
             x = isAlliance and 46.2 or 28.5,
             y = isAlliance and 85.2 or 14.0,
             zone = "Нефритовый лес",
-            note = isAlliance and "Портал в Штормград (Лагерь Лазурного Крыла)" or "Портал в Оргриммар (Деревня Медовой Росы)",
+            note = isAlliance and "Портал в Штормград (Деревня Лап'дон)" or "Портал в Оргриммар (Деревня Медовой Росы)",
         })
     elseif playerRegion ~= capRegion then
         local dx, dy, dnote = FindDynamicExitOrPortalOnMap(playerMapID, { "оргриммар", "штормград", "портал", "portal", "выход" })
@@ -928,10 +952,10 @@ function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, tar
     end
 
     -- ========================================================================
-    -- ЭТАП Б: ЗАЛ ПОРТАЛОВ СТОЛИЦЫ (Оргриммар #85 / Штормград #84) -> КОНТИНЕНТ ЦЕЛИ
+    -- ЭТАП Б: СТОЛИЦА (Штормград #84 / Оргриммар #85) -> ПОРТАЛ В КОНТИНЕНТ ЦЕЛИ
     -- ========================================================================
     local DEST_PORTAL_NAMES = {
-        PANDARIA            = "Портал в Нефритовый лес (Пандария)",
+        PANDARIA            = isAlliance and "Портал в Деревню Лап'дон (Нефритовый лес, Пандария)" or "Портал в Деревню Медовой Росы (Нефритовый лес, Пандария)",
         BROKEN_ISLES        = "Портал в Азсуну / Даларан (Расколотые острова)",
         ARGUS               = "Портал в Азсуну -> Даларан -> Аргус",
         ZANDALAR            = "Портал в Зулдазар (Зандалар)",
@@ -950,14 +974,25 @@ function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, tar
 
     if targetRegion ~= capRegion then
         local portalAction = DEST_PORTAL_NAMES[targetRegion] or ("Портал в " .. (targetZone or "нужный континент"))
-        -- Не дублируем шаг столицы, если мы уже перешли из Харандара прямо в Луносвет, а цель в Кель'Таласе
         if not (playerRegion == "HARANDAR" and targetRegion == "MIDNIGHT_QUELTHALAS") then
+            -- Для Пандарии в Штормграде (#84) есть прямой открытый портал AreaPOI #5891 на (68.7, 17.2) у шара пандаренов
+            -- (а в Оргриммаре #85 — AreaPOI #5889 на 68.6, 40.7 в Аллее Чести)!
+            -- Это также решает проблему, когда при телепорте в Башню магов (48.7, 88.1) игра мгновенно стирает точку из-за нулевого расстояния!
+            local stepX, stepY = capX, capY
+            local stepNote = string.format("%s: %s", capName, portalAction)
+            if targetRegion == "PANDARIA" then
+                stepX = isAlliance and 68.7 or 68.6
+                stepY = isAlliance and 17.2 or 40.7
+                stepNote = isAlliance
+                    and "Портал в Деревню Лап'дон (Нефритовый лес) — у шара пандаренов (68.7, 17.2) или в Зале порталов"
+                    or "Портал в Деревню Медовой Росы (Нефритовый лес) — Аллея Чести (68.6, 40.7) или в Зале порталов"
+            end
             table.insert(steps, {
                 mapID = capMapID,
-                x = capX,
-                y = capY,
+                x = stepX,
+                y = stepY,
                 zone = isAlliance and "Штормград" or "Оргриммар",
-                note = string.format("%s: %s", capName, portalAction),
+                note = stepNote,
             })
         end
     end
@@ -966,15 +1001,16 @@ function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, tar
     -- ЭТАП В: ПРОМЕЖУТОЧНЫЙ ПОРТАЛ ХАБА (если цель в Харандаре или Изумрудном Сне)
     -- ========================================================================
     if targetRegion == "HARANDAR" and playerRegion ~= "HARANDAR" then
+        -- AreaPOI #8308: Корнистый путь в Харандар (Луносвет #2393 36.7, 68.2 / #2395 47.9, 26.6)
         table.insert(steps, {
-            mapID = 2393,
-            x = 36.7,
-            y = 68.6,
-            zone = "Луносвет",
-            note = "Луносвет: Портал в Харандар",
-            dynamicScan = true,
-            keywords = { "харандар", "harandar", "логово", "den" },
-            keepNote = true,
+            mapID = 2395,
+            x = 47.9,
+            y = 26.6,
+            subMapID = 2393,
+            subX = 36.7,
+            subY = 68.2,
+            zone = "Луносвет (Сады Памяти)",
+            note = "Корнистый путь в Харандар (Луносвет 36.7, 68.2)",
         })
     elseif targetRegion == "EMERALD_DREAM" and playerRegion ~= "EMERALD_DREAM" then
         table.insert(steps, {
@@ -1142,6 +1178,85 @@ function addon:InitTooltips()
             tooltip:AddLine("   |TInterface\\COMMON\\ReputationStar:14:14:0:0:32:32:0:16:0:16|t |cffff8800Этой модели ещё нет в твоих стойлах!|r")
         end
     end)
+
+    -- 2. Тултип при наведении мышки на точку маршрута (на карте мира и на 3D-ромбике)
+    local function AppendRouteToTooltip(tip)
+        local route = self.activePortalRoute
+        if not route or not route.steps or #route.steps == 0 then return end
+        if not C_Map or not C_Map.HasUserWaypoint or not C_Map.HasUserWaypoint() then return end
+
+        -- Защита от повторного добавления строк в один и тот же показ тултипа
+        for i = 1, tip:NumLines() do
+            local leftLine = _G[tip:GetName() .. "TextLeft" .. i]
+            local txt = leftLine and leftLine:GetText()
+            if SafeNotSecret(txt) and type(txt) == "string" and string.find(txt, "BeastCollector Маршрут", 1, true) then
+                return
+            end
+        end
+
+        local step = route.steps[route.currentStep] or route.steps[#route.steps]
+        if not step then return end
+
+        tip:AddLine(" ")
+        tip:AddLine(string.format(
+            "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:14:14:0:0|t |cff00ff96BeastCollector Маршрут (Шаг %d из %d)|r",
+            route.currentStep, #route.steps
+        ))
+        tip:AddLine(string.format("   |cffffd100Куда ведёт точка:|r %s", step.note or route.targetName), 1, 1, 1, true)
+        if step.zone then
+            tip:AddLine(string.format("   |cff00ccffЛокация:|r %s (%.1f, %.1f)", step.zone, step.x or 0, step.y or 0), 0.85, 0.9, 1.0, true)
+        end
+        tip:AddLine(string.format("   |cffffaa00Финальная цель:|r %s", route.targetName), 1, 0.9, 0.7, true)
+
+        if #route.steps > 1 then
+            tip:AddLine(" ")
+            tip:AddLine("   |cffffd100Цепочка переходов:|r")
+            for idx, st in ipairs(route.steps) do
+                if idx < route.currentStep then
+                    tip:AddLine(string.format("   |cff66cc66[v] %d. %s|r", idx, st.note or st.zone or ""), 0.5, 0.85, 0.5, true)
+                elseif idx == route.currentStep then
+                    tip:AddLine(string.format("   |cffffd100[->] %d. %s (сейчас)|r", idx, st.note or st.zone or ""), 1.0, 0.85, 0.2, true)
+                else
+                    tip:AddLine(string.format("   |cff999999[ ] %d. %s|r", idx, st.note or st.zone or ""), 0.65, 0.65, 0.65, true)
+                end
+            end
+        end
+        tip:Show()
+    end
+
+    if _G.WaypointLocationPinMixin and _G.hooksecurefunc then
+        pcall(hooksecurefunc, _G.WaypointLocationPinMixin, "OnMouseEnter", function()
+            if GameTooltip and GameTooltip:IsShown() then
+                AppendRouteToTooltip(GameTooltip)
+            end
+        end)
+    end
+
+    if _G.GameTooltip and _G.GameTooltip.HookScript then
+        GameTooltip:HookScript("OnShow", function(tip)
+            local l1 = _G.GameTooltipTextLeft1 and _G.GameTooltipTextLeft1:GetText()
+            if SafeNotSecret(l1) and type(l1) == "string" then
+                local wpTitle = _G.WAYPOINT or "Путевая точка"
+                if l1 == wpTitle or string.find(l1, "Путевая точка", 1, true) or string.find(l1, "Отметка на карте", 1, true) or string.find(l1, "Waypoint", 1, true) then
+                    AppendRouteToTooltip(tip)
+                end
+            end
+        end)
+    end
+
+    if _G.SuperTrackedFrame and _G.SuperTrackedFrame.HookScript then
+        pcall(function()
+            SuperTrackedFrame:HookScript("OnEnter", function(frame)
+                if not self.activePortalRoute then return end
+                GameTooltip:SetOwner(frame, "ANCHOR_BOTTOMRIGHT")
+                GameTooltip:SetText(_G.WAYPOINT or "Путевая точка", 1, 0.82, 0)
+                AppendRouteToTooltip(GameTooltip)
+            end)
+            SuperTrackedFrame:HookScript("OnLeave", function()
+                GameTooltip:Hide()
+            end)
+        end)
+    end
 end
 
 -- ============================================================================
@@ -1151,6 +1266,7 @@ local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+eventFrame:RegisterEvent("ZONE_CHANGED_INDOORS")
 eventFrame:RegisterEvent("ZONE_CHANGED")
 eventFrame:RegisterEvent("PET_STABLE_SHOW")
 eventFrame:RegisterEvent("PET_STABLE_UPDATE")
@@ -1175,8 +1291,16 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
             addon:ScanHunterStables()
             addon:CheckPortalRouteProgress()
         end)
-    elseif event == "ZONE_CHANGED_NEW_AREA" or event == "ZONE_CHANGED" then
+        if event == "PLAYER_ENTERING_WORLD" then
+            -- Повторная проверка после полной прогрузки портала / Башни магов, чтобы точка не пропадала!
+            C_Timer.After(1.6, function() addon:CheckPortalRouteProgress() end)
+            C_Timer.After(3.0, function() addon:CheckPortalRouteProgress() end)
+        end
+    elseif event == "ZONE_CHANGED_NEW_AREA" or event == "ZONE_CHANGED_INDOORS" or event == "ZONE_CHANGED" then
         C_Timer.After(0.4, function()
+            addon:CheckPortalRouteProgress()
+        end)
+        C_Timer.After(1.4, function()
             addon:CheckPortalRouteProgress()
         end)
     elseif event == "UNIT_PET" and arg1 == "player" then
