@@ -308,8 +308,8 @@ end
 local ROLE_FILTERS = {
     { id = "ALL",          short = "Трейты и абилки",                                                        label = "Все трейты и абилки",                                                                  desc = "Показать всех зверей без фильтра по боевым способностям и трейтам." },
     { id = "BL",           short = "|TInterface\\ICONS\\Spell_Nature_BloodLust:13:13:0:0|t Героизм / БЛ",     label = "|TInterface\\ICONS\\Spell_Nature_BloodLust:14:14:0:0|t Героизм / БЛ (+10% Leech)",     desc = "Трейт Свирепости: Древняя истерия (+30% скорости боя группе/рейду на 40 сек) и +10% к самоисцелению." },
-    { id = "TENACITY_DEF", short = "|T236161:13:13:0:0|t Сейв -20% и +5% ХП",                                label = "|T236161:14:14:0:0|t Личный сейв -20% и +5% ХП",                                       desc = "Трейт Упорства: Выживает сильнейший (снижает получаемый урон на 20% на 6 сек) и +5% к запасу здоровья." },
-    { id = "CUNNING_FREE", short = "|T236160:13:13:0:0|t Свобода и +8% бега",                                label = "|T236160:14:14:0:0|t Приказ хозяина и +8% бега",                                       desc = "Трейт Хитрости: снимает все эффекты обездвиживания и замедления с цели и даёт +8% к скорости бега." },
+    { id = "TENACITY_DEF", short = "|TInterface\\ICONS\\Spell_Nature_SpiritArmor:13:13:0:0|t Сейв -20% и +5% ХП", label = "|TInterface\\ICONS\\Spell_Nature_SpiritArmor:14:14:0:0|t Личный сейв -20% и +5% ХП", desc = "Трейт Упорства: Выживает сильнейший (снижает получаемый урон на 20% на 6 сек) и +5% к запасу здоровья." },
+    { id = "CUNNING_FREE", short = "|TInterface\\ICONS\\Ability_Hunter_Masterscall:13:13:0:0|t Свобода и +8% бега", label = "|TInterface\\ICONS\\Ability_Hunter_Masterscall:14:14:0:0|t Приказ хозяина и +8% бега", desc = "Трейт Хитрости: снимает все эффекты обездвиживания и замедления с цели и даёт +8% к скорости бега." },
     { id = "DISPEL",       short = "|TInterface\\ICONS\\Spell_Nature_NullifyDisease:13:13:0:0|t Диспел магии", label = "|TInterface\\ICONS\\Spell_Nature_NullifyDisease:14:14:0:0|t Диспел магии + исступления", desc = "Абилка семейства: снимает с врага 1 магический бафф и 1 эффект исступления (Духи зверя, Скаты, Олени, Нетопыри, Мотыльки, Чирки, Водомерки, Спороскаты)." },
     { id = "MORTAL",       short = "|TInterface\\ICONS\\Ability_Warrior_SavageBlow:13:13:0:0|t Срез хила -50%", label = "|TInterface\\ICONS\\Ability_Warrior_SavageBlow:14:14:0:0|t Смертельные раны (-50% хила)", desc = "Абилка семейства: уменьшает получаемое целью исцеление на 50% (Дьявозавры, Скорпиды, Ящеры, Гиены, Дикороги, Осы, Падальщики, Опустошители, Речные чудища, Грызуны, Гидры, Ящерицы)." },
     { id = "TANK",         short = "|TInterface\\ICONS\\Ability_Defend:13:13:0:0|t Танко-щит -50%",           label = "|TInterface\\ICONS\\Ability_Defend:14:14:0:0|t Танко-щит (-50% урона по пету)",       desc = "Абилка семейства: мощное снижение урона по самому питомцу на 40–60% (Копытни, Чешуешкурые, Черепахи, Медведи, Жуки, Механизмы, Гончие недр, Панцирники, Кабаны, Гориллы, Мамонты)." },
@@ -651,6 +651,16 @@ function addon:InitUI()
     for specIdx, specID in ipairs(SPEC_ORDER) do
         local specDef = addon.PetSpecs and addon.PetSpecs[specID]
         if specDef then
+            if C_Spell and C_Spell.GetSpellTexture then
+                if specDef.spellIconID then
+                    local liveTex = C_Spell.GetSpellTexture(specDef.spellIconID)
+                    if liveTex then specDef.icon = liveTex end
+                end
+                if specDef.activeSpellID then
+                    local liveActTex = C_Spell.GetSpellTexture(specDef.activeSpellID)
+                    if liveActTex then specDef.activeIcon = liveActTex end
+                end
+            end
             local famsInSpec = {}
             for _, fam in ipairs(addon.Families or {}) do
                 if fam.spec == specID then
