@@ -142,12 +142,16 @@ function addon:InitDB()
     db.stabledByCreatureID = db.stabledByCreatureID or {}
     db.stabledByDisplay = db.stabledByDisplay or {}
     db.stabledByName = db.stabledByName or {}
+    db.stabledSlotsCache = db.stabledSlotsCache or {}
     db.manualCollected = db.manualCollected or {}
     db.manualTomes = db.manualTomes or {}
     db.tomeAttempts = db.tomeAttempts or {}
-    -- Аня уже выбила и изучила «Испытания охотника на флорафавнов» в Харандаре:
+    -- Аня уже выбила и изучила «Испытания охотника на флорафавнов» и «Древний фолиант диномантии»:
     if db.manualTomes["FLORAFAUN"] == nil then
         db.manualTomes["FLORAFAUN"] = true
+    end
+    if db.manualTomes["DIREHORN"] == nil then
+        db.manualTomes["DIREHORN"] = true
     end
     db.minimap = db.minimap or { hide = false }
     db.settings = db.settings or {
@@ -332,17 +336,6 @@ function addon:RecordTomeAttempt(tomeKey, mobName, uniqueCorpseKey)
     rec.lastKill = time()
     self.db.tomeAttempts[tomeKey] = rec
 
-    local tries, luckPct = self:GetTomeAttempts(tomeKey)
-    local chance = tome.dropChance or 20
-    print(string.format(
-        "|cff00ff96[BeastCollector Трай #%d]|r |cffffd100%s|r (%s) — шанс дропа: |cff00ccff%s|r • накопленная удача: |cffffaa00%.1f%%|r",
-        tries,
-        tome.name,
-        mobName or tome.shortTitle or "Моб",
-        tome.dropRateText or string.format("1 из %d", chance),
-        luckPct
-    ))
-
     if self.RefreshUI then
         self:RefreshUI()
     end
@@ -395,62 +388,89 @@ end
 
 -- ============================================================================
 -- АВТО-СКАНИРОВАНИЕ СТОЙЛ ОХОТНИКА (C_StableInfo + Активный питомец)
+-- При отпускании питомца на волю (PetAbandon) или смене активных слотов
+-- старые записи полностью очищаются (wipe), чтобы отпущенные звери не висели в коллекции!
 -- ============================================================================
-function addon:ScanHunterStables()
+function addon:ScanHunterStables(event)
     if not self.db then return end
 
-    local function RecordPetInfo(petInfo)
-        if type(petInfo) ~= "table" then return end
+    self.db.stabledSlotsCache = self.db.stabledSlotsCache or {}
+
+    local function ExtractPetEntry(petInfo)
+        if type(petInfo) ~= "table" then return nil end
         local cID = petInfo.creatureID
         local dID = petInfo.displayID or petInfo.modelID
         local pName = petInfo.name or "Питомец"
         local famName = petInfo.familyName or ""
         local safeName = (SafeNotSecret(pName) and pName ~= "") and pName or "Питомец"
         local safeFam = SafeNotSecret(famName) and famName or ""
+        local safeCID = (cID and SafeNotSecret(cID) and cID > 0) and cID or nil
+        local safeDID = (dID and SafeNotSecret(dID) and dID > 0) and dID or nil
+        if not safeCID and not safeDID then return nil end
+        return {
+            creatureID = safeCID,
+            displayID = safeDID,
+            name = safeName,
+            familyName = safeFam,
+            slotID = petInfo.slotID,
+        }
+    end
 
-        if cID and SafeNotSecret(cID) and cID > 0 then
-            self.db.stabledByCreatureID[cID] = {
-                name = safeName,
-                familyName = safeFam,
-                slotID = petInfo.slotID,
+    local function ApplyPetEntry(entry)
+        if not entry then return end
+        if entry.creatureID then
+            self.db.stabledByCreatureID[entry.creatureID] = {
+                name = entry.name,
+                familyName = entry.familyName,
+                slotID = entry.slotID,
             }
         end
-        if dID and SafeNotSecret(dID) and dID > 0 then
-            self.db.stabledByDisplay[dID] = {
-                name = safeName,
-                familyName = safeFam,
-                slotID = petInfo.slotID,
+        if entry.displayID then
+            self.db.stabledByDisplay[entry.displayID] = {
+                name = entry.name,
+                familyName = entry.familyName,
+                slotID = entry.slotID,
             }
         end
     end
 
+    -- 1. Полностью очищаем результирующие таблицы перед пересборкой,
+    --    чтобы все отпущенные на волю питомцы мгновенно пропадали!
+    wipe(self.db.stabledByCreatureID)
+    wipe(self.db.stabledByDisplay)
+
     if C_StableInfo then
+        -- 2. Обновляем кэш дальних стойл (слоты > 5 у смотрителя стойл), если список доступен
+        if C_StableInfo.GetStabledPetList then
+            local ok, list = pcall(C_StableInfo.GetStabledPetList)
+            if ok and type(list) == "table" and (#list > 0 or event == "PET_STABLE_SHOW" or event == "PET_STABLE_UPDATE") then
+                wipe(self.db.stabledSlotsCache)
+                for _, petInfo in ipairs(list) do
+                    local entry = ExtractPetEntry(petInfo)
+                    if entry then
+                        table.insert(self.db.stabledSlotsCache, entry)
+                    end
+                end
+            end
+        end
+
+        -- Применяем сохранённые слоты смотрителя стойл
+        for _, entry in ipairs(self.db.stabledSlotsCache) do
+            ApplyPetEntry(entry)
+        end
+
+        -- 3. Сканируем 5 активных слотов свистка (всегда актуальны в открытом мире!)
         if C_StableInfo.GetActivePetList then
             local ok, list = pcall(C_StableInfo.GetActivePetList)
             if ok and type(list) == "table" then
                 for _, petInfo in ipairs(list) do
-                    RecordPetInfo(petInfo)
-                end
-            end
-        end
-        if C_StableInfo.GetStabledPetList then
-            local ok, list = pcall(C_StableInfo.GetStabledPetList)
-            if ok and type(list) == "table" then
-                for _, petInfo in ipairs(list) do
-                    RecordPetInfo(petInfo)
-                end
-            end
-        end
-        if C_StableInfo.GetStablePetInfo then
-            for slot = 1, 205 do
-                local ok, petInfo = pcall(C_StableInfo.GetStablePetInfo, slot)
-                if ok and petInfo then
-                    RecordPetInfo(petInfo)
+                    ApplyPetEntry(ExtractPetEntry(petInfo))
                 end
             end
         end
     end
 
+    -- 4. Проверяем физически призванного рядом питомца (если он жив и не отпущен)
     if UnitExists("pet") then
         local guid = UnitGUID("pet")
         if SafeNotSecret(guid) and type(guid) == "string" then
@@ -458,7 +478,7 @@ function addon:ScanHunterStables()
             if unitType == "Pet" or unitType == "Creature" then
                 local cID = tonumber(npcIDStr)
                 local petName = UnitName("pet")
-                if cID and cID > 0 then
+                if cID and cID > 0 and not self.db.stabledByCreatureID[cID] then
                     self.db.stabledByCreatureID[cID] = {
                         name = (SafeNotSecret(petName) and petName) or "Активный питомец",
                     }
@@ -475,8 +495,19 @@ end
 function addon:IsBeastCollected(beast)
     if not beast or not self.db then return false, nil end
 
-    if self.db.manualCollected[beast.id] then
+    -- 1. Явная ручная отметка или ручное снятие отметки пользователем («Отметить своим» / «Снять отметку»)
+    --    Значение false означает, что пользователь принудительно снял галочку (например, у второго окраса того же NPC ID)!
+    if self.db.manualCollected[beast.id] == true then
         return true, "Отмечено в твоей коллекции"
+    elseif self.db.manualCollected[beast.id] == false then
+        return false, nil
+    end
+
+    -- 2. Если у зверя задан конкретный displayID (уникальный окрас), а в стойлах есть другой окрас с тем же npcID,
+    --    проверяем совпадение по displayID в приоритете, если в базе есть несколько окрасов на один npcID!
+    if beast.displayID and self.db.stabledByDisplay[beast.displayID] then
+        local info = self.db.stabledByDisplay[beast.displayID]
+        return true, string.format("В стойлах: %s", info.name or beast.name)
     end
 
     if beast.npcID and self.db.stabledByCreatureID[beast.npcID] then
@@ -493,18 +524,15 @@ function addon:IsBeastCollected(beast)
         end
     end
 
-    if beast.displayID and self.db.stabledByDisplay[beast.displayID] then
-        local info = self.db.stabledByDisplay[beast.displayID]
-        return true, string.format("В стойлах: %s", info.name or beast.name)
-    end
-
     return false, nil
 end
 
 function addon:ToggleManualCollected(beast)
     if not beast or not self.db then return end
-    if self.db.manualCollected[beast.id] then
-        self.db.manualCollected[beast.id] = nil
+    local currentlyCollected = self:IsBeastCollected(beast)
+    if currentlyCollected then
+        -- Принудительно снимаем отметку (даже если моб делит npcID с другим окрасом в стойлах)
+        self.db.manualCollected[beast.id] = false
     else
         self.db.manualCollected[beast.id] = true
     end
@@ -1019,21 +1047,25 @@ function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, tar
             note = "Портал в столицу (Кольцо Судеб, Орибос)",
         })
     elseif playerRegion == "ZANDALAR" then
-        table.insert(steps, {
-            mapID = 1165,
-            x = 49.9,
-            y = 85.0,
-            zone = "Дазар'алор",
-            note = "Комната порталов в Оргриммар (Великая Печать)",
-        })
+        if not (not isAlliance and targetRegion == "KUL_TIRAS") then
+            table.insert(steps, {
+                mapID = 1165,
+                x = 49.9,
+                y = 85.0,
+                zone = "Дазар'алор",
+                note = "Комната порталов в Оргриммар (Великая Печать)",
+            })
+        end
     elseif playerRegion == "KUL_TIRAS" then
-        table.insert(steps, {
-            mapID = 1161,
-            x = 70.4,
-            y = 16.8,
-            zone = "Боралус",
-            note = "Комната порталов в Штормград (Боралус)",
-        })
+        if not (isAlliance and targetRegion == "ZANDALAR") then
+            table.insert(steps, {
+                mapID = 1161,
+                x = 70.4,
+                y = 16.8,
+                zone = "Боралус",
+                note = "Комната порталов в Штормград (Боралус)",
+            })
+        end
     elseif playerRegion == "BROKEN_ISLES" then
         table.insert(steps, {
             mapID = 627,
@@ -1070,8 +1102,8 @@ function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, tar
         PANDARIA            = isAlliance and "Портал в Деревню Лап'дон (Нефритовый лес, Пандария)" or "Портал в Деревню Медовой Росы (Нефритовый лес, Пандария)",
         BROKEN_ISLES        = "Портал в Азсуну / Даларан (Расколотые острова)",
         ARGUS               = "Портал в Азсуну -> Даларан -> Аргус",
-        ZANDALAR            = "Портал в Зулдазар (Зандалар)",
-        KUL_TIRAS           = "Портал в Боралус (Кул-Тирас)",
+        ZANDALAR            = isAlliance and "Портал в Боралус (Кул-Тирас) -> Корабль в Зандалар" or "Портал в Зулдазар (Зандалар)",
+        KUL_TIRAS           = isAlliance and "Портал в Боралус (Кул-Тирас)" or "Портал в Зулдазар -> Корабль в Кул-Тирас",
         SHADOWLANDS         = "Портал в Орибос (Темные Земли)",
         DRAGON_ISLES        = "Портал в Вальдраккен (Драконьи острова)",
         EMERALD_DREAM       = "Портал в Вальдраккен -> Изумрудный Сон",
@@ -1085,8 +1117,11 @@ function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, tar
     }
 
     if targetRegion ~= capRegion then
+        local skipCapStep = (playerRegion == "HARANDAR" and targetRegion == "MIDNIGHT_QUELTHALAS")
+            or (isAlliance and playerRegion == "KUL_TIRAS" and targetRegion == "ZANDALAR")
+            or (not isAlliance and playerRegion == "ZANDALAR" and targetRegion == "KUL_TIRAS")
         local portalAction = DEST_PORTAL_NAMES[targetRegion] or ("Портал в " .. (targetZone or "нужный континент"))
-        if not (playerRegion == "HARANDAR" and targetRegion == "MIDNIGHT_QUELTHALAS") then
+        if not skipCapStep then
             -- Для Пандарии в Штормграде (#84) есть прямой открытый портал AreaPOI #5891 на (68.7, 17.2) у шара пандаренов
             -- (а в Оргриммаре #85 — AreaPOI #5889 на 68.6, 40.7 в Аллее Чести)!
             -- Это также решает проблему, когда при телепорте в Башню магов (48.7, 88.1) игра мгновенно стирает точку из-за нулевого расстояния!
@@ -1110,9 +1145,25 @@ function addon:BuildMultiHopRoute(targetMapID, targetX, targetY, targetName, tar
     end
 
     -- ========================================================================
-    -- ЭТАП В: ПРОМЕЖУТОЧНЫЙ ПОРТАЛ ХАБА (если цель в Харандаре или Изумрудном Сне)
+    -- ЭТАП В: ПРОМЕЖУТОЧНЫЙ ПОРТАЛ / КОРАБЛЬ ХАБА (Харандар, Изумрудный Сон, Зандалар/Кул-Тирас)
     -- ========================================================================
-    if targetRegion == "HARANDAR" and playerRegion ~= "HARANDAR" then
+    if isAlliance and targetRegion == "ZANDALAR" and playerRegion ~= "ZANDALAR" then
+        table.insert(steps, {
+            mapID = 1161,
+            x = 70.4,
+            y = 26.7,
+            zone = "Боралус (Гавань)",
+            note = "Корабль «Искупление ветра» (70.4, 26.7): адмирал Джес-Терет — отплытие в Зандалар",
+        })
+    elseif not isAlliance and targetRegion == "KUL_TIRAS" and playerRegion ~= "KUL_TIRAS" then
+        table.insert(steps, {
+            mapID = 1165,
+            x = 58.4,
+            y = 62.6,
+            zone = "Дазар'алор (Порт)",
+            note = "Корабль «Вой Банши» (58.4, 62.6): капитан Рез'окун — отплытие в Кул-Тирас",
+        })
+    elseif targetRegion == "HARANDAR" and playerRegion ~= "HARANDAR" then
         -- AreaPOI #8308: Корнистый путь в Харандар (Луносвет #2393 36.7, 68.2 / #2395 47.9, 26.6)
         table.insert(steps, {
             mapID = 2395,
@@ -1404,8 +1455,17 @@ eventFrame:RegisterEvent("ZONE_CHANGED")
 eventFrame:RegisterEvent("PET_STABLE_SHOW")
 eventFrame:RegisterEvent("PET_STABLE_UPDATE")
 eventFrame:RegisterEvent("UNIT_PET")
+eventFrame:RegisterEvent("PET_UI_UPDATE")
+eventFrame:RegisterEvent("PET_BAR_UPDATE")
 eventFrame:RegisterEvent("LOOT_READY")
 eventFrame:RegisterEvent("ENCOUNTER_END")
+
+if _G.hooksecurefunc and _G.PetAbandon then
+    pcall(hooksecurefunc, "PetAbandon", function()
+        C_Timer.After(0.25, function() addon:ScanHunterStables("PET_ABANDON") end)
+        C_Timer.After(1.00, function() addon:ScanHunterStables("PET_ABANDON") end)
+    end)
+end
 
 eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4, arg5)
     if event == "ADDON_LOADED" and arg1 == addonName then
@@ -1427,7 +1487,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4, arg5)
             if addon.SetupRoundMinimapButton then
                 addon:SetupRoundMinimapButton()
             end
-            addon:ScanHunterStables()
+            addon:ScanHunterStables(event)
             addon:CheckPortalRouteProgress()
         end)
         if event == "PLAYER_ENTERING_WORLD" then
@@ -1442,7 +1502,8 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4, arg5)
         C_Timer.After(1.4, function()
             addon:CheckPortalRouteProgress()
         end)
-    elseif event == "UNIT_PET" and arg1 == "player" then
-        addon:ScanHunterStables()
+    elseif (event == "UNIT_PET" and arg1 == "player") or event == "PET_UI_UPDATE" or event == "PET_BAR_UPDATE" then
+        addon:ScanHunterStables(event)
+        C_Timer.After(0.35, function() addon:ScanHunterStables(event) end)
     end
 end)
