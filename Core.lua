@@ -157,7 +157,11 @@ function addon:InitDB()
     db.settings = db.settings or {
         showUnitTooltips = true,
         onlyUncollected = false,
+        language = "AUTO",
     }
+    if db.settings.language == nil then
+        db.settings.language = "AUTO"
+    end
     self.db = db
 
     -- Предзагрузка данных предметов-фолиантов в кэш клиента для чтения их тултипов и спеллов
@@ -498,28 +502,30 @@ function addon:IsBeastCollected(beast)
     -- 1. Явная ручная отметка или ручное снятие отметки пользователем («Отметить своим» / «Снять отметку»)
     --    Значение false означает, что пользователь принудительно снял галочку (например, у второго окраса того же NPC ID)!
     if self.db.manualCollected[beast.id] == true then
-        return true, "Отмечено в твоей коллекции"
+        return true, self:L("COL_MANUAL")
     elseif self.db.manualCollected[beast.id] == false then
         return false, nil
     end
+
+    local bName = self:GetBeastName(beast)
 
     -- 2. Если у зверя задан конкретный displayID (уникальный окрас), а в стойлах есть другой окрас с тем же npcID,
     --    проверяем совпадение по displayID в приоритете, если в базе есть несколько окрасов на один npcID!
     if beast.displayID and self.db.stabledByDisplay[beast.displayID] then
         local info = self.db.stabledByDisplay[beast.displayID]
-        return true, string.format("В стойлах: %s", info.name or beast.name)
+        return true, self:L("COL_STABLED_FMT", info.name or bName)
     end
 
     if beast.npcID and self.db.stabledByCreatureID[beast.npcID] then
         local info = self.db.stabledByCreatureID[beast.npcID]
-        return true, string.format("В стойлах: %s", info.name or beast.name)
+        return true, self:L("COL_STABLED_FMT", info.name or bName)
     end
 
     if beast.npcIDs then
         for _, nid in ipairs(beast.npcIDs) do
             local info = self.db.stabledByCreatureID[nid]
             if info then
-                return true, string.format("В стойлах: %s", info.name or beast.name)
+                return true, self:L("COL_STABLED_FMT", info.name or bName)
             end
         end
     end
@@ -777,8 +783,9 @@ function addon:ActivateCurrentRouteStep(silent)
     end
 
     local totalSteps = #route.steps
+    local isEN = self:IsEnglish()
     local stepLabel = totalSteps > 1
-        and string.format("[Шаг %d/%d] %s", route.currentStep, totalSteps, step.note or route.targetName)
+        and string.format(isEN and "[Step %d/%d] %s" or "[Шаг %d/%d] %s", route.currentStep, totalSteps, step.note or route.targetName)
         or string.format("BeastCollector: %s (%s)", route.targetName, step.note or "")
 
     -- 1. Ставим стрелку TomTom на текущий шаг (и на подкарту, если задана subMapID, например Логово 2576 или Луносвет 2393)
@@ -831,15 +838,19 @@ function addon:ActivateCurrentRouteStep(silent)
 
     if not silent then
         local mapInfo = C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(step.mapID)
-        local zoneName = step.zone or (mapInfo and SafeNotSecret(mapInfo.name) and mapInfo.name) or "Локация"
+        local zoneName = step.zone or (mapInfo and SafeNotSecret(mapInfo.name) and mapInfo.name) or self:L("UNKNOWN_ZONE")
         if totalSteps > 1 then
             print(string.format(
-                "|cff00ff96[BeastCollector Маршрут %d/%d]|r Стрелка миникарты ведёт: |cffffd100%s|r — |cff00ccff%s (%.1f, %.1f)|r",
+                isEN
+                    and "|cff00ff96[BeastCollector Route %d/%d]|r Minimap arrow leads to: |cffffd100%s|r — |cff00ccff%s (%.1f, %.1f)|r"
+                    or "|cff00ff96[BeastCollector Маршрут %d/%d]|r Стрелка миникарты ведёт: |cffffd100%s|r — |cff00ccff%s (%.1f, %.1f)|r",
                 route.currentStep, totalSteps, step.note or route.targetName, zoneName, step.x, step.y
             ))
         else
             print(string.format(
-                "|cff00ff96[BeastCollector]|r Проложен путь к |cffffd100%s|r: |cff00ccff%s (%.1f, %.1f)|r%s",
+                isEN
+                    and "|cff00ff96[BeastCollector]|r Route plotted to |cffffd100%s|r: |cff00ccff%s (%.1f, %.1f)|r%s"
+                    or "|cff00ff96[BeastCollector]|r Проложен путь к |cffffd100%s|r: |cff00ccff%s (%.1f, %.1f)|r%s",
                 route.targetName, zoneName, step.x, step.y, step.note and (" — " .. step.note) or ""
             ))
         end
@@ -1206,16 +1217,24 @@ function addon:NavigateToBeast(beast, coordIndex, openWorldMap)
         pcall(OpenWorldMap, beast.mapID)
     end
 
+    local isEN = self:IsEnglish()
+    local bName = (beast.enName and isEN and beast.enName) or self:GetBeastName(beast)
+    local bZone = (beast.zoneEN and isEN and beast.zoneEN) or self:GetBeastZone(beast)
+
     if not beast.coords or #beast.coords == 0 or not beast.mapID then
         if beast.mapID then
             print(string.format(
-                "|cff00ff96[BeastCollector]|r Открыта карта зоны |cff00ccff%s|r для поиска |cffffd100%s|r.",
-                beast.zone or "Локация", beast.name
+                isEN
+                    and "|cff00ff96[BeastCollector]|r Opened map of |cff00ccff%s|r for |cffffd100%s|r."
+                    or "|cff00ff96[BeastCollector]|r Открыта карта зоны |cff00ccff%s|r для поиска |cffffd100%s|r.",
+                bZone, bName
             ))
         else
             print(string.format(
-                "|cff00ff96[BeastCollector]|r Зверь |cffffd100%s|r обитает в: |cff00ccff%s|r.",
-                beast.name, beast.zone or "Инстанс / Подземелье"
+                isEN
+                    and "|cff00ff96[BeastCollector]|r |cffffd100%s|r is located in: |cff00ccff%s|r."
+                    or "|cff00ff96[BeastCollector]|r Зверь |cffffd100%s|r обитает в: |cff00ccff%s|r.",
+                bName, bZone
             ))
         end
         return
@@ -1223,19 +1242,20 @@ function addon:NavigateToBeast(beast, coordIndex, openWorldMap)
 
     local pt = beast.coords[coordIndex or 1] or beast.coords[1]
     if not pt then return end
+    local ptNote = self:GetCoordNote(pt)
 
     -- Строим пошаговый маршрут (выход из зоны -> порталы -> финальная точка)
     local steps = self:BuildMultiHopRoute(
         beast.mapID,
         pt.x,
         pt.y,
-        beast.name,
-        beast.zone,
-        pt.note and (beast.name .. " — " .. pt.note) or beast.name
+        bName,
+        bZone,
+        ptNote and (bName .. " — " .. ptNote) or bName
     )
 
     self.activePortalRoute = {
-        targetName = beast.name,
+        targetName = bName,
         targetMapID = beast.mapID,
         steps = steps,
         currentStep = 1,
@@ -1244,7 +1264,8 @@ function addon:NavigateToBeast(beast, coordIndex, openWorldMap)
     -- Если у зверя несколько точек спавна в финальной зоне и включён TomTom, добавим их на карту финальной зоны
     if _G.TomTom and _G.TomTom.AddWaypoint and coordIndex == nil and #beast.coords > 1 then
         for i, c in ipairs(beast.coords) do
-            local subTitle = string.format("%s [%d/%d: %s]", beast.name, i, #beast.coords, c.note or beast.zone or "")
+            local cNote = self:GetCoordNote(c)
+            local subTitle = string.format("%s [%d/%d: %s]", bName, i, #beast.coords, cNote or bZone or "")
             pcall(_G.TomTom.AddWaypoint, _G.TomTom, beast.mapID, c.x / 100, c.y / 100, {
                 title = subTitle,
                 persistent = false,
@@ -1263,7 +1284,7 @@ function addon:NavigateToBeast(beast, coordIndex, openWorldMap)
         for idx, st in ipairs(steps) do
             table.insert(chainParts, string.format("%d) %s", idx, st.note or st.zone or ""))
         end
-        print("|cff00ff96[BeastCollector Навигатор]|r Полный маршрут по порталам: |cffffffff" .. table.concat(chainParts, " -> ") .. "|r")
+        print((isEN and "|cff00ff96[BeastCollector Navigator]|r Full portal route: |cffffffff" or "|cff00ff96[BeastCollector Навигатор]|r Полный маршрут по порталам: |cffffffff") .. table.concat(chainParts, " -> ") .. "|r")
     end
 end
 
@@ -1286,23 +1307,27 @@ function addon:InitTooltips()
         if not npcID then return end
 
         -- Если этот NPC (например, Зандаларский диномант 69795 или Охотник Петрус 167501) дропает фолиант охотника:
+        local isEN = self:IsEnglish()
         local dropTomeKey = self.TomeByDropNpcID and self.TomeByDropNpcID[npcID]
         if dropTomeKey and self.TamingTomes and self.TamingTomes[dropTomeKey] then
             local isLearned, tDef = self:IsTomeLearned(dropTomeKey)
             local tries, luckPct = self:GetTomeAttempts(dropTomeKey)
+            local tName = self:GetTomeName(tDef)
+            local tDrop = self:GetTomeDropRateText(tDef)
+            local tExp = self:GetTomeExpectedKillsText(tDef)
             tooltip:AddLine(" ")
-            tooltip:AddLine("|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t |cff00ff96BeastCollector Фолиант:|r |cffffd100" .. tDef.name .. "|r")
-            if tDef.dropRateText then
-                tooltip:AddLine("   |cffffd100Шанс выпадения:|r " .. tDef.dropRateText, 0.9, 0.9, 0.9, true)
+            tooltip:AddLine("|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t |cff00ff96" .. (isEN and "BeastCollector Tome:" or "BeastCollector Фолиант:") .. "|r |cffffd100" .. tName .. "|r")
+            if tDrop then
+                tooltip:AddLine("   |cffffd100" .. (isEN and "Drop Chance:" or "Шанс выпадения:") .. "|r " .. tDrop, 0.9, 0.9, 0.9, true)
             end
-            if tDef.expectedKillsText then
-                tooltip:AddLine("   |cff00ccffОжидание:|r " .. tDef.expectedKillsText, 0.85, 0.9, 1.0, true)
+            if tExp then
+                tooltip:AddLine("   |cff00ccff" .. (isEN and "Expected Kills:" or "Ожидание:") .. "|r " .. tExp, 0.85, 0.9, 1.0, true)
             end
-            tooltip:AddLine(string.format("   |cffffaa00Твои траи (убито):|r %d (накопленная удача: %.1f%%)", tries, luckPct), 1, 0.85, 0.5, true)
+            tooltip:AddLine(string.format(isEN and "   |cffffaa00Your Attempts (Kills):|r %d (cumulative luck: %.1f%%)" or "   |cffffaa00Твои траи (убито):|r %d (накопленная удача: %.1f%%)", tries, luckPct), 1, 0.85, 0.5, true)
             if isLearned then
-                tooltip:AddLine("   |TInterface\\RaidFrame\\ReadyCheck-Ready:14:14:0:0|t |cff00ff96Этот фолиант уже изучен!|r")
+                tooltip:AddLine("   |TInterface\\RaidFrame\\ReadyCheck-Ready:14:14:0:0|t |cff00ff96" .. (isEN and "This tome is already learned!" or "Этот фолиант уже изучен!") .. "|r")
             else
-                tooltip:AddLine("   |TInterface\\COMMON\\ReputationStar:14:14:0:0:32:32:0:16:0:16|t |cffff8800Ещё не изучен — убей и залутай!|r")
+                tooltip:AddLine("   |TInterface\\COMMON\\ReputationStar:14:14:0:0:32:32:0:16:0:16|t |cffff8800" .. (isEN and "Not learned yet — kill & loot!" or "Ещё не изучен — убей и залутай!") .. "|r")
             end
         end
 
@@ -1313,25 +1338,25 @@ function addon:InitTooltips()
         local spec = fam and self.PetSpecs[fam.spec]
         local isCollected, colText = self:IsBeastCollected(beast)
 
-        local famLabel = (fam and fam.name) or "Приручаемый зверь"
+        local famLabel = (fam and self:GetFamilyName(fam)) or (isEN and "Tameable Beast" or "Приручаемый зверь")
         if fam and fam.exotic then
-            famLabel = famLabel .. " |cffc678dd(Экзотика — только БМ)|r"
+            famLabel = famLabel .. (isEN and " |cffc678dd(Exotic — BM Only)|r" or " |cffc678dd(Экзотика — только БМ)|r")
         end
 
         tooltip:AddLine(" ")
         tooltip:AddDoubleLine(
             "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:14:14:0:0|t |cff00ff96BeastCollector:|r " .. famLabel,
-            spec and (spec.color .. spec.name .. "|r") or ""
+            spec and (spec.color .. self:GetSpecName(spec) .. "|r") or ""
         )
-        if fam and fam.familySkill then
-            tooltip:AddLine("   |cffffd100Умеет:|r " .. fam.familySkill, 0.9, 0.9, 0.9, true)
+        if fam and self:GetFamilySkill(fam) ~= "" then
+            tooltip:AddLine("   |cffffd100" .. (isEN and "Ability:" or "Умеет:") .. "|r " .. self:GetFamilySkill(fam), 0.9, 0.9, 0.9, true)
         end
 
         -- Проверка: почему зверь может не приручаться прямо сейчас (БМ-спек / уровень моба / фолиант)
         if fam and fam.exotic and _G.GetSpecialization then
             local curSpec = GetSpecialization()
             if SafeNotSecret(curSpec) and curSpec ~= 1 then
-                tooltip:AddLine("   |TInterface\\DialogFrame\\UI-Dialog-Icon-AlertNew:14:14:0:0|t |cffff4444Нельзя приручить в текущем спеке: нужен «Повелитель Зверей» (БМ)!|r", 1, 0.3, 0.3, true)
+                tooltip:AddLine("   |TInterface\\DialogFrame\\UI-Dialog-Icon-AlertNew:14:14:0:0|t |cffff4444" .. (isEN and "Cannot tame in current spec: requires Beast Mastery (BM)!" or "Нельзя приручить в текущем спеке: нужен «Повелитель Зверей» (БМ)!") .. "|r", 1, 0.3, 0.3, true)
             end
         end
 
@@ -1340,7 +1365,7 @@ function addon:InitTooltips()
         if SafeNotSecret(mobLevel) and SafeNotSecret(playerLevel) and type(mobLevel) == "number" and type(playerLevel) == "number" then
             if mobLevel > playerLevel or mobLevel < 0 then
                 local lvlStr = (mobLevel < 0) and "??" or tostring(mobLevel)
-                tooltip:AddLine("   |TInterface\\DialogFrame\\UI-Dialog-Icon-AlertNew:14:14:0:0|t |cffff4444Нельзя приручить сейчас: уровень зверя (" .. lvlStr .. ") выше твоего (" .. tostring(playerLevel) .. ")!|r", 1, 0.3, 0.3, true)
+                tooltip:AddLine("   |TInterface\\DialogFrame\\UI-Dialog-Icon-AlertNew:14:14:0:0|t |cffff4444" .. (isEN and ("Cannot tame right now: creature level (" .. lvlStr .. ") is higher than yours (" .. tostring(playerLevel) .. ")!") or ("Нельзя приручить сейчас: уровень зверя (" .. lvlStr .. ") выше твоего (" .. tostring(playerLevel) .. ")!")) .. "|r", 1, 0.3, 0.3, true)
             end
         end
 
@@ -1349,17 +1374,17 @@ function addon:InitTooltips()
                 local isLearned, tome = self:IsTomeLearned(tKey)
                 if tome then
                     if isLearned then
-                        tooltip:AddLine("   |TInterface\\RaidFrame\\ReadyCheck-Ready:14:14:0:0|t |cff00ff96Книга изучена:|r " .. tome.name, 0.6, 1.0, 0.6, true)
+                        tooltip:AddLine("   |TInterface\\RaidFrame\\ReadyCheck-Ready:14:14:0:0|t |cff00ff96" .. (isEN and "Tome Learned:" or "Книга изучена:") .. "|r " .. self:GetTomeName(tome), 0.6, 1.0, 0.6, true)
                     else
-                        tooltip:AddLine("   |TInterface\\RaidFrame\\ReadyCheck-NotReady:14:14:0:0|t |cffff4444Требуется книга:|r " .. tome.name, 1.0, 0.4, 0.4, true)
+                        tooltip:AddLine("   |TInterface\\RaidFrame\\ReadyCheck-NotReady:14:14:0:0|t |cffff4444" .. (isEN and "Requires Tome:" or "Требуется книга:") .. "|r " .. self:GetTomeName(tome), 1.0, 0.4, 0.4, true)
                     end
                 end
             end
         end
         if isCollected then
-            tooltip:AddLine("   |TInterface\\RaidFrame\\ReadyCheck-Ready:14:14:0:0|t |cff00ff96" .. (colText or "Уже в коллекции") .. "|r")
+            tooltip:AddLine("   |TInterface\\RaidFrame\\ReadyCheck-Ready:14:14:0:0|t |cff00ff96" .. (colText or (isEN and "Collected" or "Уже в коллекции")) .. "|r")
         else
-            tooltip:AddLine("   |TInterface\\COMMON\\ReputationStar:14:14:0:0:32:32:0:16:0:16|t |cffff8800Этой модели ещё нет в твоих стойлах!|r")
+            tooltip:AddLine("   |TInterface\\COMMON\\ReputationStar:14:14:0:0:32:32:0:16:0:16|t |cffff8800" .. (isEN and "You haven't collected this look in your stables yet!" or "Этой модели ещё нет в твоих стойлах!") .. "|r")
         end
     end)
 
@@ -1381,25 +1406,28 @@ function addon:InitTooltips()
         local step = route.steps[route.currentStep] or route.steps[#route.steps]
         if not step then return end
 
+        local isEN = self:IsEnglish()
         tip:AddLine(" ")
         tip:AddLine(string.format(
-            "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:14:14:0:0|t |cff00ff96BeastCollector Маршрут (Шаг %d из %d)|r",
+            isEN
+                and "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:14:14:0:0|t |cff00ff96BeastCollector Маршрут / Route (Step %d of %d)|r"
+                or "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:14:14:0:0|t |cff00ff96BeastCollector Маршрут (Шаг %d из %d)|r",
             route.currentStep, #route.steps
         ))
-        tip:AddLine(string.format("   |cffffd100Куда ведёт точка:|r %s", step.note or route.targetName), 1, 1, 1, true)
+        tip:AddLine(string.format(isEN and "   |cffffd100Waypoint Target:|r %s" or "   |cffffd100Куда ведёт точка:|r %s", step.note or route.targetName), 1, 1, 1, true)
         if step.zone then
-            tip:AddLine(string.format("   |cff00ccffЛокация:|r %s (%.1f, %.1f)", step.zone, step.x or 0, step.y or 0), 0.85, 0.9, 1.0, true)
+            tip:AddLine(string.format(isEN and "   |cff00ccffLocation:|r %s (%.1f, %.1f)" or "   |cff00ccffЛокация:|r %s (%.1f, %.1f)", step.zone, step.x or 0, step.y or 0), 0.85, 0.9, 1.0, true)
         end
-        tip:AddLine(string.format("   |cffffaa00Финальная цель:|r %s", route.targetName), 1, 0.9, 0.7, true)
+        tip:AddLine(string.format(isEN and "   |cffffaa00Final Destination:|r %s" or "   |cffffaa00Финальная цель:|r %s", route.targetName), 1, 0.9, 0.7, true)
 
         if #route.steps > 1 then
             tip:AddLine(" ")
-            tip:AddLine("   |cffffd100Цепочка переходов:|r")
+            tip:AddLine(isEN and "   |cffffd100Portal Route Chain:|r" or "   |cffffd100Цепочка переходов:|r")
             for idx, st in ipairs(route.steps) do
                 if idx < route.currentStep then
                     tip:AddLine(string.format("   |cff66cc66[v] %d. %s|r", idx, st.note or st.zone or ""), 0.5, 0.85, 0.5, true)
                 elseif idx == route.currentStep then
-                    tip:AddLine(string.format("   |cffffd100[->] %d. %s (сейчас)|r", idx, st.note or st.zone or ""), 1.0, 0.85, 0.2, true)
+                    tip:AddLine(string.format(isEN and "   |cffffd100[->] %d. %s (current)|r" or "   |cffffd100[->] %d. %s (сейчас)|r", idx, st.note or st.zone or ""), 1.0, 0.85, 0.2, true)
                 else
                     tip:AddLine(string.format("   |cff999999[ ] %d. %s|r", idx, st.note or st.zone or ""), 0.65, 0.65, 0.65, true)
                 end

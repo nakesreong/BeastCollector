@@ -813,15 +813,122 @@ def ensure_cache_files(force_fetch: bool = False):
             print(f"        Saved {len(data):,} bytes -> {fpath}")
 
 
+FAMILY_EN_INFO = {
+    "spiritbeast": ("Spirit Beasts", "Spirit Mend + Spirit Shock (Dispel) + Spirit Walk", "Elite Exotic Beast Mastery family: heals allies (Spirit Mend), prowls in stealth, dispels 1 Magic & 1 Enrage effect (Spirit Shock), and provides a 20% personal defensive cooldown!"),
+    "clefthoof": ("Clefthooves", "Thick Hide (-60% dmg) + Blood of the Rhino (+20% healing)", "The #1 solo tank pet for Delves, elites, and open world! Provides Bloodlust/Heroism (+10% Leech), takes 20% increased healing, and automatically triggers a -60% damage shield."),
+    "corehound": ("Core Hounds", "Obsidian Skin (-50% dmg) + Molten Hide", "Two-headed elemental hounds for Beast Mastery: provide Bloodlust/Heroism, a -50% damage Obsidian Skin shield, and reflect fire damage to melee attackers."),
+    "devilsaur": ("Devilsaurs", "Monstrous Bite (-50% healing) + Feast", "Apex jungle predators for Beast Mastery: combine Bloodlust/Heroism with a 50% Mortal Wounds healing reduction and feast on corpses to restore health and focus."),
+    "ray": ("Nether & Mana Rays", "Nether Energy (Magic & Enrage Dispel)", "Top Mythic+ meta pet for all 3 Hunter specs: provides Bloodlust/Heroism (Ferocity) while dispelling 1 Magic effect and 1 Enrage effect from enemies!"),
+    "stag": ("Stags & Moose", "Nature's Grace (Magic & Enrage Dispel)", "Top Mythic+ choice when your group already has Bloodlust: grants +5% max HP, a 20% damage reduction cooldown, and dispels Magic & Enrage effects!"),
+    "scorpid": ("Scorpids", "Deadly Sting (-50% healing received)", "Versatile combat pet for all 3 specs: combines Bloodlust/Heroism (Ferocity) with a 50% Mortal Wounds healing reduction."),
+    "wolf": ("Wolves", "Furious Bite (50% Slow)", "Classic Hunter companion: provides Bloodlust/Heroism, +10% Leech, and slows the target by 50%."),
+    "cat": ("Cats, Tigers & Lynxes", "Catlike Reflexes (+30% Dodge) + Prowl", "The largest Ferocity family: provides Bloodlust/Heroism, stealth Prowl, and a +30% Dodge cooldown."),
+    "raptor": ("Raptors", "Savage Rend (-50% healing received)", "Swift predators for PvP and Arenas: provide Master's Call (root removal), +8% movement speed, and a 50% healing reduction!"),
+    "hyena": ("Hyenas", "Infected Bite (-50% healing received)", "PvP favorite: compact model, Master's Call (root immunity), +8% movement speed, and a 50% healing reduction."),
+    "feathermane": ("Feathermanes (Gryphons & Owlcats)", "Updraft (Slow Fall) + Feather Flurry (+30% Dodge)", "Gryphons, hippogryphs, wolfhawks, owlcats, and wyverns (requires Tome of the Hybrid Beast from the Legion Order Hall). Grants Tenacity defensive and Slow Fall!"),
+    "mechanical": ("Mechanicals", "Defense Matrix (-50% dmg for 12s)", "Mechanical wolves, spiders, sabers, and striders (requires Mecha-Bond Imprint Matrix). Combines Cunning (Master's Call) with a 50% tank shield!"),
+    "lesserdragonkin": ("Lesser Dragonkin & Cloud Serpents", "Shimmering Scales (-70% magic dmg)", "Fey dragons, veilwings, and hornswogs (requires How to Train a Dragonkin at Renown 23 Valdrakken Accord). Grants Bloodlust and a -70% magic shield!"),
+    "bloodbeast": ("Blood Beasts", "Blood Bolt (Ranged 50% Slow)", "Crawgs and blood ticks (requires Blood-Soaked Tome of Dark Whispers from Zul in Uldir). Grants Tenacity defensive and a ranged slow."),
+    "whiptail": ("Whiptails (Midnight)", "Tail Lash (50% Slow)", "New predator family introduced in Midnight! Provides Bloodlust/Heroism, +10% Leech, and slows enemies."),
+    "chimaera": ("Chimaeras", "Frost Breath (Slow) + Froststorm Breath (AoE)", "Exotic two-headed flying predators for Beast Mastery: provide Bloodlust/Heroism, slow targets, and breathe frost-lightning AoE."),
+    "shalebeast": ("Shale Beasts", "Solid Shell (-50% dmg) + Shimmering Shale", "Exotic stone spiders and earth elementals: provide Master's Call, take 5% reduced physical damage, and activate a -50% damage shell."),
+    "waterstrider": ("Water Striders", "Soothing Waters (Dispel) + Surface Trot (Water Walking)", "Exotic water striders for Beast Mastery: grant Water Walking, dispel Magic & Enrage from enemies, and provide Master's Call!"),
+    "aqiri": ("Aqiri & Silithids", "Tendon Rip (Slow) + Dune Strider (+30% pet speed)", "Exotic Kunchong, colossi, and silithids: move 30% faster than other pets, slow targets, and provide Master's Call."),
+    "carapid": ("Carapids (Krolusks)", "Calcified Carapace (-50% dmg) + Odious Bite", "Exotic armored trilobites and krolusks: grant Tenacity defensive cooldown, a -50% damage carapace shield, and slow enemies."),
+    "pterrordax": ("Pterrordaxes", "Ancient Hide (-50% dmg) + Updraft (Slow Fall)", "Exotic winged reptiles of Zandalar and Un'Goro: grant Slow Fall, Master's Call, and a -50% damage shield."),
+    "worm": ("Worms", "Acid Spit (Slow) + Burrow Attack (AoE)", "Exotic deep worms: grant Tenacity defensive cooldown, slow enemies with acid, and burrow underground for AoE damage."),
+    "stonehound": ("Stone Hounds & Gargons", "Stone Armor (-40% dmg below 40% HP) + Eternal Guardian (Self-Revive)", "Exotic Quilen, stone hounds, and Revendreth Gargons: can resurrect themselves after death and automatically trigger Stone Armor!"),
+    "direhorn": ("Direhorns", "Gore (-50% healing received)", "Mighty triceratops of Zandalar and Pandaria (requires Ancient Tome of Dinomancy from Isle of Giants). Combine Tenacity defensive with a 50% healing cut!"),
+    "basilisk": ("Basilisks", "Petrifying Gaze / Stone Scales (-50% dmg for 12s)", "Six-legged stone reptiles: provide Master's Call (+8% movement speed) and a -50% damage stone shield."),
+    "bat": ("Bats", "Sonic Blast (Magic & Enrage Dispel)", "Great flying Mythic+ pet: provides Bloodlust/Heroism (Ferocity) and dispels 1 Magic + 1 Enrage effect from enemies!"),
+    "bear": ("Bears", "Thick Fur (Auto -50% dmg below 40% HP) + Rest", "Sturdy forest Tenacity tanks: provide a personal defensive cooldown and automatically reduce damage taken at low health."),
+    "beetle": ("Beetles & Scarabs", "Harden Carapace (-50% dmg for 12s)", "Armored stag beetles and scarabs: provide Tenacity defensive cooldown and a -50% damage carapace shield."),
+    "birdofprey": ("Birds of Prey (Eagles & Owls)", "Talon Rend (50% Slow)", "Eagles, owls, falcons, and ravens: provide Master's Call (+8% movement speed) and slow enemies."),
+    "boar": ("Boars", "Bristle (-50% dmg for 12s)", "Fearless battle boars: combine Cunning utility with a solid -50% damage shield."),
+    "camel": ("Camels & Alpacas", "Tough Hide (Auto -50% dmg below 40% HP)", "Uldum camels and fluffy Vol'dun alpacas: provide Master's Call and an automatic defensive shield at low health."),
+    "carrionbird": ("Carrion Birds (Vultures & Ravens)", "Bloody Screech (-50% healing received)", "Vultures, condors, and ravens: provide Bloodlust/Heroism (Ferocity) and reduce target healing by 50%!"),
+    "courser": ("Coursers & Unicorns", "Fleethoof (50% Slow)", "Noble dreamrunners, unicorns, and steeds: provide Bloodlust/Heroism and slow targets."),
+    "crab": ("Crabs", "Pin (50% Slow)", "Coastal and crystal crabs: provide Tenacity defensive (+5% HP) and snare targets."),
+    "crocolisk": ("Crocolisks", "Ankle Crack (50% Slow)", "Six-legged river predators of Azeroth: provide Bloodlust/Heroism and slow enemies."),
+    "dragonhawk": ("Dragonhawks", "Dragon's Guile (+30% Dodge for 10s)", "Vibrant winged dragonhawks of Silvermoon and Outland: provide Tenacity defensive and dodge."),
+    "fox": ("Foxes & Vulpin", "Agile Reflexes (+30% Dodge) + Play", "Charming foxes and vulpin: provide Master's Call, +8% movement speed, and +30% dodge."),
+    "gorilla": ("Gorillas", "Silverback (Auto -50% dmg below 40% HP)", "Mighty Ferocity primates: provide Bloodlust/Heroism and a built-in -50% damage auto-shield!"),
+    "gruffhorn": ("Gruffhorns (Goats & Rams)", "Matted Pelt (Reduces enemy attack speed)", "Mountain rams, talbuks, and goats: provide Master's Call and slow melee attacks against the pet."),
+    "hopper": ("Hoppers (Toads & Frogs)", "Swarm of Flies (+30% Dodge for 10s)", "Giant toads, horntoads, and hoppers: provide Tenacity defensive cooldown and increased dodge."),
+    "hound": ("Hounds & Dogs", "Lock Jaw (50% Slow)", "Mastiffs, bakar, darkhounds, and corgis: provide Master's Call and slow enemies."),
+    "hydra": ("Hydras", "Acid Bite (-50% healing received)", "Multi-headed river and storm hydras: provide Tenacity defensive (+5% HP) and reduce target healing by 50%!"),
+    "lizard": ("Lizards & Salamanders", "Grievous Bite (-50% healing received)", "Horned lizards, iguanas, and salamanders: combine Tenacity defensive with a 50% healing reduction."),
+    "mammoth": ("Mammoths & Elekks", "Trample / Thick Skin (-50% dmg for 12s)", "Mighty mammoths, mastodons, and elekks: provide Tenacity defensive and a -50% damage shield."),
+    "monkey": ("Monkeys", "Primal Agility (+30% Dodge for 10s)", "Nimble monkeys: provide Master's Call (+8% movement speed) and +30% dodge."),
+    "moth": ("Moths & Butterflies", "Serenity Dust (Magic & Enrage Dispel)", "Glowing Ardenweald moths and butterflies: provide Master's Call and dispel 1 Magic + 1 Enrage effect!"),
+    "oxen": ("Oxen, Yaks & Mushan", "Niuzao's Fortitude (Auto -50% dmg below 40% HP)", "Sturdy yaks, bison, and mushan: provide Tenacity defensive and an automatic low-HP shield."),
+    "ravager": ("Ravagers", "Ravage (-50% healing received)", "Spined alien predators: provide Bloodlust/Heroism (Ferocity) and reduce target healing by 50%!"),
+    "riverbeast": ("Riverbeasts (Hippos)", "Gruesome Bite (-50% healing received)", "River hippos: great choice when you need Tenacity defensive (+5% HP) and a 50% healing cut simultaneously!"),
+    "rodent": ("Rodents, Porcupines & Ottuks", "Gnaw (-50% healing received)", "Porcupines, marmots, ottuks, and rats: provide Master's Call (+8% speed) and reduce target healing by 50%!"),
+    "scalehide": ("Scalehides (Kodos & Thunder Lizards)", "Scale Shield (-50% dmg for 12s)", "Best tank pet for Marksmanship and Survival Hunters (no BM required)! Combines Bloodlust/Heroism (+10% Leech) with an on-demand -50% damage shield!"),
+    "serpent": ("Serpents & Cobras", "Serpent's Swiftness (+30% Dodge for 10s)", "King cobras, vipers, and sea serpents: provide Master's Call and increased dodge."),
+    "spider": ("Spiders", "Web Spray (Ranged 50% Slow)", "Snare enemies from range with webs and provide Bloodlust/Heroism (Ferocity)."),
+    "sporebat": ("Sporebats", "Spore Cloud (Magic & Enrage Dispel)", "Floating bioluminescent sporebats: provide Master's Call and dispel 1 Magic + 1 Enrage effect!"),
+    "tallstrider": ("Tallstriders", "Dust Cloud (50% Slow)", "Swift running birds: provide Bloodlust/Heroism and slow enemies."),
+    "turtle": ("Turtles", "Shell Shield (-50% dmg for 12s)", "Classic unbreakable Tenacity tanks: provide personal defensive cooldown and a -50% damage shell shield."),
+    "warpstalker": ("Warp Stalkers", "Warp Time (50% Slow + Blink)", "Phase-shifting Nether lizards: teleport to the target, slow it by 50%, and provide Master's Call."),
+    "wasp": ("Wasps & Hornets", "Toxic Sting (-50% healing received)", "Venomous wasps, bees, and hornets: provide Bloodlust/Heroism (Ferocity) and reduce target healing by 50%!"),
+    "waterfowl": ("Waterfowl (Cranes, Ducks & Geese)", "Water Splash (Magic & Enrage Dispel)", "Cranes, herons, flamingos, and ducks: provide Tenacity defensive cooldown and dispel Magic & Enrage!"),
+    "windserpent": ("Wind Serpents", "Winged Scales (+30% Dodge for 10s)", "Feathered serpents: provide Bloodlust/Heroism (Ferocity) and +30% dodge."),
+}
+
+CURATED_EN_BY_NPC = {
+    32517: ("Loque'nahak", "Mate of Har'koa (Unique Spirit Leopard)", "6–12 hours (7 spawn points around Sholazar Basin)", "The most iconic Spirit Beast in WoW history with a unique glowing snow leopard model. Patrols 7 fixed spawn points around Sholazar Basin. Tip: check with War Mode ON or on low-population shards."),
+    38453: ("Arcturis", "Spectral Bear of Grizzly Hills", "6–14 hours (Single spawn point!)", "The only Spirit Bear in the game! Spawns at a single spot on the hillside just north of Amberpine Lodge (31.0, 55.6) overlooking the river."),
+    35189: ("Skoll", "Lightning Worg of the Storm Peaks", "6–10 hours (3 spawn points)", "Electric blue northern saber worg crackling with lightning arcs. Spawns at 3 locations in western Storm Peaks."),
+    33776: ("Gondria", "Spectral Purple Saber Tiger", "6–10 hours (5 spawn points around altars)", "Translucent purple-mist saber tiger with glowing eyes. Patrols snow-covered clearings around the upper-tier altars of Zul'Drak."),
+    50138: ("Karoma", "Spectral Shaman Ghost Wolf", "4–8 hours (6 spawn points)", "The classic translucent Shaman Ghost Wolf model! Roams 6 forest clearings across the Twilight Highlands."),
+    88708: ("Gara", "Void Wolf Spirit Beast (Secret Ritual Questline)", "Instant upon completing personal ritual (100% guaranteed!)", "Secret purple Spirit Beast with zero competition! Step 1: Scratch Gara's ears at the burial mound (28.6, 35.8) and show her Shadowberries. Step 2: Gather 6 items across Draenor to build an Effigy. Step 3: Place the Effigy at Gara's grave, loot the Shadow Lantern in Pillars of Fate, and enter the Void phase at the Great Tree (56.8, 21.6)."),
+    54320: ("Ban'thalos", "Spirit Moon Owl of Mount Hyjal", "4–8 hours", "Spectral green owl trailing starlight high above the Sanctuary of Malorne. Land on the tip of the tallest narrow column (27.4, 62.6), pull Ban'thalos with a ranged shot, and tame!"),
+    54318: ("Ankha", "White Spectral Tiger (Unequip all armor first!)", "4–8 hours (shares spawn with Magria)", "IMPORTANT MECHANIC: Ankha casts 'Metal Wrath', which one-shots any player wearing armor! Unequip ALL gear with an Armor value before casting Tame Beast."),
+    54319: ("Magria", "Azure Spectral Tiger (Unequip all armor first!)", "4–8 hours (shares spawn with Ankha)", "Blue sister of Ankha. Deals lethal bonus damage based on your armor—unequip all armor pieces before taming!"),
+    50051: ("Ghostcrawler", "Spectral Crab of the Abyssal Depths", "4–8 hours", "Translucent spirit crab named after former lead systems designer Greg 'Ghostcrawler' Street. Patrols a long underwater path along the western edge of the Abyssal Depths."),
+    121567: ("Lost Spectral Gryphon", "Ghostly Gryphon of Stormwind (Click Spectral Feather)", "15–45 minutes (click Spectral Feather)", "Fly to the Stormwind Flight Master (71.2, 72.5)—even as Horde using Aspect of the Turtle / Camouflage! Click the 'Spectral Feather' on the hay by the nest to summon the gryphon on the spot!"),
+    121571: ("Gon", "Spectral Raptor of Orgrimmar (Click Spectral Eggshell)", "15–45 minutes (click Spectral Eggshell)", "Enter the large shaman hut in Orgrimmar's Valley of Spirits (35.6, 69.0). Click the small 'Spectral Eggshell' on the floor next to the skulls to summon Gon!"),
+    118244: ("Lightning Paw", "Electric Spirit Fox of Duskwood", "2–6 hours (hides inside bushes!)", "Glowing blue Spirit Fox! Hides inside shimmering bushes across Duskwood—listen for the distinct crackling sound of electricity near the bushes."),
+    111463: ("Bulvinkel", "Spectral White Moose of Stormheim", "1–4 hours", "Noble translucent moose standing at the very edge of a high coastal cliff in southeastern Stormheim (80.5, 85.4)."),
+    69946: ("Hutia", "Jade Spirit Porcupine of the Jade Forest", "30–60 minutes", "Starry green Spirit Porcupine. Bring its health below 20% to remove its taming immunity, then tame from range!"),
+    69943: ("Gumi", "Azure Spirit Porcupine of Kun-Lai Summit", "30–60 minutes", "Blue starry Spirit Porcupine. Reduce its HP below 20% to remove taming immunity."),
+    69947: ("Degu", "Crimson Spirit Porcupine of Krasarang Wilds", "30–60 minutes", "Red starry Spirit Porcupine. Reduce its HP below 20% and maintain distance while taming."),
+    60410: ("Elegon", "Celestial Astral Cloud Serpent", "Inside Mogu'shan Vaults raid on any difficulty (100% guaranteed!)", "Celestial dragon Elegon is classified as a Spirit Beast (does NOT require the Cloud Serpent tome, only Beast Mastery spec)! Enter Mogu'shan Vaults, reach the 5th boss, and tame."),
+    210868: ("Sul'raka", "Purple Shadow Loa Tiger (Track Heavy Footprints)", "15–30 minutes (invisible without Flare!)", "Deep purple translucent Loa tigress in the Emerald Dream! Prowls in complete stealth while leaving 'Heavy Tracks' on the ground. Drop a Flare and Freezing Trap ahead of her fresh tracks!"),
+    210908: ("Nah'qi", "Fiery Spirit Somnowl of the Emerald Dream", "1–2 hours", "Breathtaking fiery Spirit Owl in the Emerald Dream (shares the Mythic Fyrakk mount model!). Flies high around the central boughs of Amirdrassil. Requires Cinder of Companionship."),
+    213428: ("Aradan", "Stormrook Spirit Gryphon of The Rookery (5 plumage variants)", "Inside The Rookery dungeon (100% spawn!)", "Stormrook Spirit Beast inside 'The Rookery' dungeon (Isle of Dorn). Pick up the 'Void-Touched Stormfeather' on the ledge after the 1st boss Kyrioss and use it on Aradan!"),
+    193254: ("Bloodgullet", "Spectral Blue Armoredon of Ohn'ahran Plains", "5–15 minutes", "Translucent blue Spirit Beast in northeastern Ohn'ahran Plains (Dragon Isles)."),
+    69161: ("Oondasta", "King of Dinosaurs in Zandalari Battle Armor", "15 minutes (World Boss)", "Legendary Pandaria world boss clad in golden Zandalari armor! Directly tameable by Beast Mastery Hunters."),
+    71529: ("Thok the Bloodthirsty", "Garrosh's Armored Juggernaut Devilsaur", "Inside Siege of Orgrimmar raid (100% guaranteed)", "Iron-jawed armored devilsaur from Siege of Orgrimmar (Boss #11)! Tameable on any raid difficulty."),
+    32485: ("King Krush", "Emerald Devilsaur King of Sholazar Basin", "6–10 hours", "Iconic bright green devilsaur of Northrend. Patrols 3 routes through the jungles of Sholazar Basin."),
+    14020: ("Chromaggus", "Nefarian's Two-Headed Chromatic Core Hound", "Inside Blackwing Lair raid (Boss #7)", "Unique golden-armored chromatic core hound boss inside classic Blackwing Lair."),
+    17447: ("The Kurken", "White Two-Headed Core Hound of Azuremyst Isle", "5 minutes (Always up!)", "White-and-blue frost core hound inside Stillpine Hold cave in northern Azuremyst Isle (49.6, 12.8)."),
+    76906: ("Faultline", "Armored Lava Clefthoof of Blackrock Foundry", "Inside Blackrock Foundry (Beastlord Darmac)", "Clefthoof clad in molten steel armor! On Mythic Beastlord Darmac, defeat the boss without killing Faultline, then tame!"),
+    71466: ("Iron Juggernaut", "Giant Mechanical Scorpid Boss of Siege of Orgrimmar", "Crafted from 3 engineering parts", "Boss #6 from Siege of Orgrimmar (belongs to the Scorpid family—provides Bloodlust + 50% Mortal Wounds!). Collect 3 parts and the schematic from Mythic Iron Juggernaut to summon and tame it."),
+    95674: ("Fenryr", "Colossal Worg Boss of Halls of Valor", "Solo Mythic 0 dungeon run", "Enter Halls of Valor on Mythic difficulty STRICTLY SOLO, defeat Hymdall and Fenryr, step outside the instance for 30 minutes (or relog), and return to the cave—a friendly tameable Fenryr will be sleeping inside!"),
+    50159: ("Sambas", "Royal Golden Maned Lion of Twilight Highlands", "3–6 hours", "Famous rare golden lion with a full mane in the Twilight Highlands."),
+    50815: ("Skarr", "Black Metallic Panther with Emerald Eyes", "4–8 hours", "Gleaming dark-steel cat found on the floating fire-rocks of the Molten Front."),
+    50058: ("Terrorpene", "Blazing Lava Turtle of Mount Hyjal", "4–8 hours", "Unique turtle with a shell of swirling molten magma in southern Mount Hyjal."),
+    54322: ("Deth'tilac", "Purple Spider of the Molten Front (Tame below 20% HP)", "4–8 hours", "Immune to taming above 20% HP. Send your pet to soak its 'Deth Strike' (each strike costs Deth'tilac 10% of its own HP) and kite with traps until below 20% HP!"),
+    62442: ("Tsulong", "Golden Radiant Cloud Serpent of Day and Night", "Inside Terrace of Endless Spring raid (Boss #2, 100% guaranteed)", "Golden cloud serpent of light from Terrace of Endless Spring! Requires 'How to School Your Serpent' (Exalted with Order of the Cloud Serpent or Pandaren race)."),
+    67977: ("Tortos", "Colossal Crystal Turtle of Throne of Thunder", "Inside Throne of Thunder raid (Boss #4)", "Giant crystal-shelled turtle boss! Tameable on any difficulty of Throne of Thunder."),
+}
+
+
 def load_uimap_lookup():
     uimap_ru = {}
     with open(os.path.join(CACHE_DIR, "UiMap_ruRU.csv"), encoding="utf-8") as f:
         for r in csv.DictReader(f):
             uimap_ru[int(r["ID"])] = r["Name_lang"].strip()
 
+    uimap_en = {}
     uimap_en_to_id = {}
     with open(os.path.join(CACHE_DIR, "UiMap_enUS.csv"), encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
+        for r in rows:
+            uimap_en[int(r["ID"])] = r["Name_lang"].strip()
         rows.sort(key=lambda r: (0 if r["Type"] == "3" else (1 if r["Type"] == "4" else 2), int(r["ID"])))
         for r in rows:
             name = r["Name_lang"].strip()
@@ -853,7 +960,7 @@ def load_uimap_lookup():
 
     def resolve_zone(z_raw: str):
         if not z_raw:
-            return None, "Азерот"
+            return None, "Азерот", "Azeroth"
         first_part = z_raw.split(";")[0].strip()
         clean = re.sub(r"\s*\([^)]*\)", "", first_part).strip()
         candidates = [clean]
@@ -866,19 +973,19 @@ def load_uimap_lookup():
             cl = c.lower()
             if cl in uimap_en_to_id:
                 mid = uimap_en_to_id[cl]
-                return mid, uimap_ru.get(mid, c)
+                return mid, uimap_ru.get(mid, c), uimap_en.get(mid, c)
             if cl.startswith("the ") and cl[4:] in uimap_en_to_id:
                 mid = uimap_en_to_id[cl[4:]]
-                return mid, uimap_ru.get(mid, c)
+                return mid, uimap_ru.get(mid, c), uimap_en.get(mid, c)
         if "Midnight Delves" in z_raw:
-            return 2393, "Вылазки Midnight (Кель'Талас)"
+            return 2393, "Вылазки Midnight (Кель'Талас)", "Midnight Delves (Quel'Thalas)"
         if "Khaz Algar Delves" in z_raw:
-            return 2248, "Вылазки Каз Алгара"
+            return 2248, "Вылазки Каз Алгара", "Khaz Algar Delves"
         if "Island Expeditions" in z_raw:
-            return 862, "Островные экспедиции (BfA)"
-        return None, clean
+            return 862, "Островные экспедиции (BfA)", "Island Expeditions (BfA)"
+        return None, clean, clean
 
-    return uimap_ru, resolve_zone
+    return uimap_ru, uimap_en, resolve_zone
 
 
 def load_creature_db():
@@ -953,7 +1060,7 @@ def load_ghp_coords():
     return ghp_by_npc
 
 
-def parse_petopia_gallery(uimap_ru, resolve_zone, creature_ru_name, creature_disp, ghp_by_npc):
+def parse_petopia_gallery(uimap_ru, uimap_en, resolve_zone, creature_ru_name, creature_disp, ghp_by_npc):
     with open(os.path.join(CACHE_DIR, "petopia_gallery.html"), encoding="utf-8") as f:
         html = f.read()
 
@@ -1012,16 +1119,22 @@ def parse_petopia_gallery(uimap_ru, resolve_zone, creature_ru_name, creature_dis
                 is_elite = "Elite" in lvl_raw
 
                 tag = ""
+                tag_en = ""
                 if is_boss:
                     tag = "Босс"
+                    tag_en = "Boss"
                 elif is_rare and is_elite:
                     tag = "Редкая элита"
+                    tag_en = "Rare Elite"
                 elif is_rare:
                     tag = "Рарник"
+                    tag_en = "Rare"
                 elif is_spawned:
                     tag = "Особый призыв"
+                    tag_en = "Spawned"
                 elif is_elite:
                     tag = "Элита"
+                    tag_en = "Elite"
 
                 npc_rows.append({
                     "id": nid,
@@ -1029,6 +1142,7 @@ def parse_petopia_gallery(uimap_ru, resolve_zone, creature_ru_name, creature_dis
                     "name_ru": creature_ru_name.get(nid),
                     "level": lvl_num,
                     "tag": tag,
+                    "tag_en": tag_en,
                     "is_boss": is_boss,
                     "is_rare": is_rare,
                     "is_spawned": is_spawned,
@@ -1061,12 +1175,6 @@ def parse_petopia_gallery(uimap_ru, resolve_zone, creature_ru_name, creature_dis
 
         npc_rows = item["npc_rows"]
 
-        # Choose the best primary NPC for 3D rendering and waypoint navigation:
-        # 1. Curated NPC if present
-        # 2. Single-look NPC (npc_look_count[id] == 1) so SetCreature(npcID) is 100% deterministic
-        # 3. Has GHP coordinates
-        # 4. Has static DB2 displayID
-        # 5. Rare / Named
         def score_npc(row):
             nid = row["id"]
             is_curated = 1 if nid in CURATED_BY_NPC else 0
@@ -1079,6 +1187,7 @@ def parse_petopia_gallery(uimap_ru, resolve_zone, creature_ru_name, creature_dis
         best_npc = max(npc_rows, key=score_npc)
         primary_nid = best_npc["id"]
         curated = CURATED_BY_NPC.get(primary_nid)
+        curated_en = CURATED_EN_BY_NPC.get(primary_nid)
 
         # Verified 1-to-1 DisplayID only
         verified_disp = creature_disp.get(primary_nid) if npc_look_count[primary_nid] == 1 else None
@@ -1107,49 +1216,67 @@ def parse_petopia_gallery(uimap_ru, resolve_zone, creature_ru_name, creature_dis
 
         map_id = None
         zone_ru = None
+        zone_en = None
         coords = []
 
         if curated and "mapID" in curated:
             map_id = curated["mapID"]
             zone_ru = uimap_ru.get(map_id, best_npc["zone_en"])
+            zone_en = uimap_en.get(map_id, best_npc["zone_en"])
             coords = list(curated.get("coords", []))
         elif ghp_info:
             map_id = ghp_info["zoneID"]
             zone_ru = uimap_ru.get(map_id)
-            if not zone_ru:
-                _, zone_ru = resolve_zone(ghp_info["zone_name"])
+            zone_en = uimap_en.get(map_id)
+            if not zone_ru or not zone_en:
+                _, z_ru_res, z_en_res = resolve_zone(ghp_info["zone_name"])
+                zone_ru = zone_ru or z_ru_res
+                zone_en = zone_en or z_en_res
             coords = [(x, y, ghp_info["name"]) for x, y in ghp_info["coords"]]
         else:
-            map_id, zone_ru = resolve_zone(best_npc["zone_en"])
+            map_id, zone_ru, zone_en = resolve_zone(best_npc["zone_en"])
 
-        if not zone_ru:
-            _, zone_ru = resolve_zone(best_npc["zone_en"])
+        if not zone_ru or not zone_en:
+            _, z_ru_res, z_en_res = resolve_zone(best_npc["zone_en"])
+            zone_ru = zone_ru or z_ru_res
+            zone_en = zone_en or z_en_res
 
-        # Determine Title & Subtitle
+        # Determine Title & Subtitle (RU + EN)
+        color_en = (item["var_label"] or item["alt_name"] or "Standard").strip()
         color_ru = translate_color_label(item["var_label"] or item["alt_name"])
         primary_name_display = best_npc["name_ru"] or best_npc["name_en"]
+        primary_name_en = best_npc["name_en"]
 
         if curated:
             b_name = curated["name"]
             b_sub = curated["subTitle"]
+            b_name_en = curated_en[0] if curated_en else primary_name_en
+            b_sub_en = curated_en[1] if curated_en else f"{item['model_en']} ({color_en})"
         elif len(npc_rows) == 1 or best_npc["is_rare"] or best_npc["is_boss"]:
             b_name = primary_name_display
             b_sub = f"{item['model_en']} ({color_ru})"
+            b_name_en = primary_name_en
+            b_sub_en = f"{item['model_en']} ({color_en})"
         else:
             b_name = f"{primary_name_display} ({color_ru})"
             b_sub = f"{item['model_en']} — {item['alt_name']}"
+            b_name_en = f"{primary_name_en} ({color_en})"
+            b_sub_en = f"{item['model_en']} — {item['alt_name']}"
 
         # Build compact top NPCs list (up to 6) for the Side Inspector Dock
         top_npcs = []
         for r in npc_rows[:6]:
-            _, r_zone_ru = resolve_zone(r["zone_en"])
+            _, r_zone_ru, r_zone_en = resolve_zone(r["zone_en"])
             r_name = f"{r['name_ru']} ({r['name_en']})" if r["name_ru"] else r["name_en"]
             top_npcs.append({
                 "id": r["id"],
                 "name": r_name,
+                "nameEN": r["name_en"],
                 "level": r["level"],
                 "tag": r["tag"],
+                "tagEN": r["tag_en"],
                 "zone": r_zone_ru,
+                "zoneEN": r_zone_en,
             })
 
         all_nids = [r["id"] for r in npc_rows]
@@ -1160,17 +1287,22 @@ def parse_petopia_gallery(uimap_ru, resolve_zone, creature_ru_name, creature_dis
             "family": fam_slug,
             "modelGroup": item["model_en"],
             "name": b_name,
+            "nameEN": b_name_en,
             "subTitle": b_sub,
+            "subTitleEN": b_sub_en,
             "npcID": primary_nid,
             "displayID": verified_disp,
             "npcIDs": all_nids,
             "npcs": top_npcs,
             "rarity": rarity,
             "zone": zone_ru,
+            "zoneEN": zone_en,
             "mapID": map_id,
             "coords": coords,
             "respawn": curated.get("respawn") if curated else None,
+            "respawnEN": curated_en[2] if curated_en else None,
             "howTo": curated.get("howTo") if curated else None,
+            "howToEN": curated_en[3] if curated_en else None,
         })
 
     # Sort beasts within each family so curated / Spirit / Boss / Rare come first, then by model group
@@ -1196,7 +1328,7 @@ def write_outputs(beasts):
         "-- Sources: Petopia Gallery + Blizzard Wago DB2 + CreatureDisplayDB + GHP",
         "-- DO NOT EDIT MANUALLY — Run `python tools/build_database.py` to update.",
         "-- ============================================================================",
-        'local MAJOR, MINOR = "HunterPetsDB-1.0", 2',
+        'local MAJOR, MINOR = "HunterPetsDB-1.0", 3',
         "local LibStub = _G.LibStub",
         "local DB = LibStub and LibStub:NewLibrary(MAJOR, MINOR) or {}",
         "_G.HunterPetsDB = DB",
@@ -1206,13 +1338,16 @@ def write_outputs(beasts):
 
     for slug in FAMILY_ORDER:
         meta = FAMILY_META[slug]
+        en_info = FAMILY_EN_INFO.get(slug, (slug.capitalize(), meta["skill"], meta["desc"]))
         roles_str = ", ".join(f'"{r}"' for r in meta["roles"])
         tome_str = f', tome = "{meta["tome"]}"' if "tome" in meta else ""
         lines.append(
             f'    {{ id = "{slug}", familyID = {meta["familyID"]}, name = "{lua_escape(meta["name"])}", '
+            f'nameEN = "{lua_escape(en_info[0])}", '
             f'spec = "{meta["spec"]}", exotic = {"true" if meta["exotic"] else "false"}{tome_str}, '
             f'icon = {meta["icon"]}, roles = {{ {roles_str} }}, '
-            f'familySkill = "{lua_escape(meta["skill"])}", familyDesc = "{lua_escape(meta["desc"])}" }},'
+            f'familySkill = "{lua_escape(meta["skill"])}", familySkillEN = "{lua_escape(en_info[1])}", '
+            f'familyDesc = "{lua_escape(meta["desc"])}", familyDescEN = "{lua_escape(en_info[2])}" }},'
         )
     lines.append("}")
     lines.append("")
@@ -1222,7 +1357,9 @@ def write_outputs(beasts):
         disp_part = f", displayID = {b['displayID']}" if b["displayID"] else ""
         map_part = f", mapID = {b['mapID']}" if b["mapID"] else ""
         resp_part = f', respawn = "{lua_escape(b["respawn"])}"' if b["respawn"] else ""
+        resp_en_part = f', respawnEN = "{lua_escape(b["respawnEN"])}"' if b.get("respawnEN") else ""
         howto_part = f', howTo = "{lua_escape(b["howTo"])}"' if b["howTo"] else ""
+        howto_en_part = f', howToEN = "{lua_escape(b["howToEN"])}"' if b.get("howToEN") else ""
 
         nids_str = ",".join(str(x) for x in b["npcIDs"][:25])
 
@@ -1234,18 +1371,20 @@ def write_outputs(beasts):
         npcs_items = []
         for n in b["npcs"]:
             tag_p = f',tag="{lua_escape(n["tag"])}"' if n["tag"] else ""
+            tag_en_p = f',tagEN="{lua_escape(n["tagEN"])}"' if n.get("tagEN") else ""
             npcs_items.append(
-                f'{{id={n["id"]},name="{lua_escape(n["name"])}",level="{lua_escape(n["level"])}"{tag_p},zone="{lua_escape(n["zone"])}"}}'
+                f'{{id={n["id"]},name="{lua_escape(n["name"])}",nameEN="{lua_escape(n["nameEN"])}",level="{lua_escape(n["level"])}"{tag_p}{tag_en_p},zone="{lua_escape(n["zone"])}",zoneEN="{lua_escape(n["zoneEN"])}"}}'
             )
         npcs_part = f", npcs = {{{','.join(npcs_items)}}}" if npcs_items else ""
 
         lines.append(
             f'    {{ id = "{lua_escape(b["id"])}", lookID = "{lua_escape(b["lookID"])}", '
             f'family = "{b["family"]}", modelGroup = "{lua_escape(b["modelGroup"])}", '
-            f'name = "{lua_escape(b["name"])}", subTitle = "{lua_escape(b["subTitle"])}", '
+            f'name = "{lua_escape(b["name"])}", nameEN = "{lua_escape(b["nameEN"])}", '
+            f'subTitle = "{lua_escape(b["subTitle"])}", subTitleEN = "{lua_escape(b["subTitleEN"])}", '
             f'npcID = {b["npcID"]}{disp_part}, rarity = "{b["rarity"]}", '
-            f'zone = "{lua_escape(b["zone"])}"{map_part}, npcIDs = {{{nids_str}}}'
-            f'{coords_part}{npcs_part}{resp_part}{howto_part} }},'
+            f'zone = "{lua_escape(b["zone"])}", zoneEN = "{lua_escape(b["zoneEN"])}"{map_part}, npcIDs = {{{nids_str}}}'
+            f'{coords_part}{npcs_part}{resp_part}{resp_en_part}{howto_part}{howto_en_part} }},'
         )
 
     lines.append("}")
@@ -1253,126 +1392,6 @@ def write_outputs(beasts):
 
     with open(OUT_LIB_PATH, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
-
-    # Write clean BeastDB.lua wrapper that wires HunterPetsDB-1.0 + PetSpecs + TamingTomes
-    beast_db_lua = '''local _, addon = ...
-
--- ============================================================================
--- BeastCollector — BeastDB.lua
--- Подключает сгенерированную библиотеку Libs/HunterPetsDB-1.0/HunterPetsDB-1.0.lua
--- (61 семейство и 2 635 приручаемых окрасов/моделей из Petopia + Wago DB2 + GHP)
--- и задаёт боевые специализации питомцев и таблицу фолиантов приручения.
--- ============================================================================
-
-local LibStub = _G.LibStub
-local HunterPetsDB = (LibStub and LibStub("HunterPetsDB-1.0", true)) or _G.HunterPetsDB or {}
-
--- 1. БОЕВЫЕ СПЕЦИАЛИЗАЦИИ ПИТОМЦЕВ (Ferocity / Cunning / Tenacity)
-addon.PetSpecs = {
-    FEROCITY = {
-        id = "FEROCITY",
-        name = "Свирепость",
-        color = "|cffff4d4d",
-        icon = 236159,
-        activeName = "Древняя истерия (Героизм / БЛ)",
-        activeIcon = 136224,
-        activeDesc = "Увеличивает скорость атаки и произнесения заклинаний всех участников группы или рейда на 30% на 40 сек.",
-        passiveName = "Исступление хищника",
-        passiveDesc = "Даёт охотнику и питомцу +10% к самоисцелению (Leech).",
-    },
-    CUNNING = {
-        id = "CUNNING",
-        name = "Хитрость",
-        color = "|cffffcc00",
-        icon = 236160,
-        activeName = "Приказ хозяина (Свобода)",
-        activeIcon = 236158,
-        activeDesc = "Снимает с питомца и выбранного союзника все эффекты обездвиживания и замедления и даёт невосприимчивость к ним на 4 сек.",
-        passiveName = "Следопыт",
-        passiveDesc = "Повышает скорость передвижения охотника и питомца на 8%.",
-    },
-    TENACITY = {
-        id = "TENACITY",
-        name = "Упорство",
-        color = "|cff4da6ff",
-        icon = 236161,
-        activeName = "Выживает сильнейший (Личный сейв)",
-        activeIcon = 136080,
-        activeDesc = "Уменьшает весь получаемый охотником и питомцем урон на 20% на 6 сек.",
-        passiveName = "Выносливость дрессировщика",
-        passiveDesc = "Увеличивает максимальный запас здоровья охотника и питомца на 5%.",
-    },
-}
-
--- 2. СПЕЦИАЛЬНЫЕ ФОЛИАНТЫ ПРИРУЧЕНИЯ (проверяются по questID / расе)
-addon.TamingTomes = {
-    DIREHORN = {
-        id = "DIREHORN",
-        name = "Древний фолиант диномантии",
-        questID = 32610,
-        itemID = 94232,
-        source = "Выбивается с диномантов Зандалари на Острове Великанов (Пандария).",
-    },
-    MECHANICAL = {
-        id = "MECHANICAL",
-        name = "Матрица механоуз",
-        questID = 42758,
-        itemID = 134125,
-        autoRaces = { ["Gnome"] = true, ["Goblin"] = true, ["Mechagnome"] = true },
-        source = "Создаётся инженерами (Легион) или покупается на Аукционе. Гномы, гоблины и мехагномы умеют с рождения.",
-    },
-    FEATHERMANE = {
-        id = "FEATHERMANE",
-        name = "Фолиант гибридных зверей",
-        questID = 46339,
-        itemID = 147580,
-        source = "Покупается у Пана Добрая Лапа в Приюте Стрелка (Оплот Охотника, Легион) после цепочки Расколотого берега.",
-    },
-    BLOOD_BEAST = {
-        id = "BLOOD_BEAST",
-        name = "Пропитанный кровью фолиант темного шепота",
-        questID = 54753,
-        itemID = 166502,
-        source = "Падает с босса Зул Перерожденный в рейде Ульдир (сложность Героическая или Эпохальная).",
-    },
-    UNDEAD = {
-        id = "UNDEAD",
-        name = "Простой фолиант костоплета",
-        questID = 62254,
-        itemID = 183123,
-        autoRaces = { ["Scourge"] = true },
-        source = "Падает с элитных мобов и боссов Малдраксуса / Чумопада и Театра Боли (Shadowlands). Отрекшиеся умеют с рождения.",
-    },
-    CLOUD_SERPENT = {
-        id = "CLOUD_SERPENT",
-        name = "Как приручить дракона",
-        questID = 62255,
-        itemID = 183124,
-        autoRaces = { ["Pandaren"] = true },
-        source = "Покупается у Сань Рыжей Чешуи в Дендрарии (Нефритовый лес) при Превознесении с Орденом Облачного Змея.",
-    },
-    GARGON = {
-        id = "GARGON",
-        name = "Справочник по дрессировке гаргонов",
-        questID = 61160,
-        itemID = 180942,
-        source = "Падает с Охотника Вивора в Ревендрете (62.8, 36.8).",
-    },
-    DRAGONKIN = {
-        id = "DRAGONKIN",
-        name = "Как приручить драконида",
-        questID = 72094,
-        itemID = 201790,
-        autoRaces = { ["Dracthyr"] = true },
-        source = "Награда за 23 уровень известности с Кентаврами Маруук (Драконьи острова).",
-    },
-}
-
-addon.Families = HunterPetsDB.Families or {}
-addon.Beasts   = HunterPetsDB.Beasts or {}
-'''
-    with open(OUT_DB_PATH, "w", encoding="utf-8") as f:
-        f.write(beast_db_lua)
 
 
 def main():
@@ -1382,7 +1401,7 @@ def main():
 
     ensure_cache_files(force_fetch=args.fetch)
     print("[1/4] Loading Blizzard UiMap DB2 tables (enUS + ruRU)...")
-    uimap_ru, resolve_zone = load_uimap_lookup()
+    uimap_ru, uimap_en, resolve_zone = load_uimap_lookup()
 
     print("[2/4] Loading Blizzard Creature DB2 + CreatureDisplayDB tables...")
     creature_ru_name, creature_disp = load_creature_db()
@@ -1391,7 +1410,7 @@ def main():
     ghp_by_npc = load_ghp_coords()
 
     print("[4/4] Parsing Petopia Tameable Looks Gallery & cross-referencing...")
-    beasts = parse_petopia_gallery(uimap_ru, resolve_zone, creature_ru_name, creature_disp, ghp_by_npc)
+    beasts = parse_petopia_gallery(uimap_ru, uimap_en, resolve_zone, creature_ru_name, creature_disp, ghp_by_npc)
 
     write_outputs(beasts)
     lib_size = os.path.getsize(OUT_LIB_PATH)

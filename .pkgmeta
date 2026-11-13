@@ -1,0 +1,9 @@
+package-as: BeastCollector
+enable-nolib-creation: no
+
+ignore:
+  - .github
+  - .gitignore
+  - tools
+  - DOCS_DATABASE_PIPELINE.md
+  - BeastCollector_v1.0.0_CurseForge.zip

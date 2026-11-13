@@ -72,6 +72,9 @@ local SHORT_FAMILY_NAMES = {
 
 local function GetShortFamilyName(fam)
     if not fam then return "" end
+    if addon:IsEnglish() then
+        return fam.nameEN or fam.name or ""
+    end
     if SHORT_FAMILY_NAMES[fam.id] then
         return SHORT_FAMILY_NAMES[fam.id]
     end
@@ -83,13 +86,14 @@ local function GetFamilyDropdownText(fam)
     if not fam then return "" end
     local base = GetShortFamilyName(fam)
     local icStr = fam.icon and ("|T" .. tostring(fam.icon) .. ":14:14:0:0:64:64:5:59:5:59|t ") or ""
+    local isEN = addon:IsEnglish()
     local suffix = ""
     if fam.exotic and fam.tome then
-        suffix = " |cff00ccff(Экзот, Фолиант)|r"
+        suffix = isEN and " |cff00ccff(Exotic, Tome)|r" or " |cff00ccff(Экзот, Фолиант)|r"
     elseif fam.exotic then
-        suffix = " |cff00ccff(Экзот)|r"
+        suffix = isEN and " |cff00ccff(Exotic)|r" or " |cff00ccff(Экзот)|r"
     elseif fam.tome then
-        suffix = " |cffffaa00(Фолиант)|r"
+        suffix = isEN and " |cffffaa00(Tome)|r" or " |cffffaa00(Фолиант)|r"
     end
     return icStr .. base .. suffix
 end
@@ -291,11 +295,17 @@ function addon:ShowCopyLinkPopup(url, titleText)
         local hint = p:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         hint:SetPoint("BOTTOMLEFT", p, "BOTTOMLEFT", 14, 8)
         hint:SetText("|cff888888Нажми Ctrl+C, чтобы скопировать ссылку в браузер|r")
+        p.hint = hint
 
         ui.copyPopup = p
     end
 
-    ui.copyPopup.title:SetText(titleText or "Ссылка на зверя")
+    if ui.copyPopup.hint then
+        ui.copyPopup.hint:SetText(addon:IsEnglish()
+            and "|cff888888Press Ctrl+C to copy the link to your browser|r"
+            or "|cff888888Нажми Ctrl+C, чтобы скопировать ссылку в браузер|r")
+    end
+    ui.copyPopup.title:SetText(titleText or (addon:IsEnglish() and "Beast Link" or "Ссылка на зверя"))
     ui.copyPopup.editBox:SetText(url or "")
     ui.copyPopup:Show()
     ui.copyPopup.editBox:SetFocus()
@@ -306,20 +316,139 @@ end
 -- СПИСОК ФИЛЬТРОВ ПО ТРЕЙТАМ И АБИЛКАМ (Отдельная выпадашка слева)
 -- ============================================================================
 local ROLE_FILTERS = {
-    { id = "ALL",          short = "Трейты и абилки",                                                        label = "Все трейты и абилки",                                                                  desc = "Показать всех зверей без фильтра по боевым способностям и трейтам." },
-    { id = "BL",           short = "|TInterface\\ICONS\\Spell_Nature_BloodLust:13:13:0:0|t Героизм / БЛ",     label = "|TInterface\\ICONS\\Spell_Nature_BloodLust:14:14:0:0|t Героизм / БЛ (+10% Leech)",     desc = "Трейт Свирепости: Древняя истерия (+30% скорости боя группе/рейду на 40 сек) и +10% к самоисцелению." },
-    { id = "TENACITY_DEF", short = "|TInterface\\ICONS\\Spell_Nature_SpiritArmor:13:13:0:0|t Сейв -20% и +5% ХП", label = "|TInterface\\ICONS\\Spell_Nature_SpiritArmor:14:14:0:0|t Личный сейв -20% и +5% ХП", desc = "Трейт Упорства: Выживает сильнейший (снижает получаемый урон на 20% на 6 сек) и +5% к запасу здоровья." },
-    { id = "CUNNING_FREE", short = "|TInterface\\ICONS\\Ability_Hunter_Masterscall:13:13:0:0|t Свобода и +8% бега", label = "|TInterface\\ICONS\\Ability_Hunter_Masterscall:14:14:0:0|t Приказ хозяина и +8% бега", desc = "Трейт Хитрости: снимает все эффекты обездвиживания и замедления с цели и даёт +8% к скорости бега." },
-    { id = "DISPEL",       short = "|TInterface\\ICONS\\Spell_Nature_NullifyDisease:13:13:0:0|t Диспел магии", label = "|TInterface\\ICONS\\Spell_Nature_NullifyDisease:14:14:0:0|t Диспел магии + исступления", desc = "Абилка семейства: снимает с врага 1 магический бафф и 1 эффект исступления (Духи зверя, Скаты, Олени, Нетопыри, Мотыльки, Чирки, Водомерки, Спороскаты)." },
-    { id = "MORTAL",       short = "|TInterface\\ICONS\\Ability_Warrior_SavageBlow:13:13:0:0|t Срез хила -50%", label = "|TInterface\\ICONS\\Ability_Warrior_SavageBlow:14:14:0:0|t Смертельные раны (-50% хила)", desc = "Абилка семейства: уменьшает получаемое целью исцеление на 50% (Дьявозавры, Скорпиды, Ящеры, Гиены, Дикороги, Осы, Падальщики, Опустошители, Речные чудища, Грызуны, Гидры, Ящерицы)." },
-    { id = "TANK",         short = "|TInterface\\ICONS\\Ability_Defend:13:13:0:0|t Танко-щит -50%",           label = "|TInterface\\ICONS\\Ability_Defend:14:14:0:0|t Танко-щит (-50% урона по пету)",       desc = "Абилка семейства: мощное снижение урона по самому питомцу на 40–60% (Копытни, Чешуешкурые, Черепахи, Медведи, Жуки, Механизмы, Гончие недр, Панцирники, Кабаны, Гориллы, Мамонты)." },
-    { id = "SLOW",         short = "|TInterface\\ICONS\\Spell_Frost_ChainsOfIce:13:13:0:0|t Замедление -50%", label = "|TInterface\\ICONS\\Spell_Frost_ChainsOfIce:14:14:0:0|t Замедление врага (-50% бега)",  desc = "Абилка семейства: замедляет скорость передвижения цели на 50% (Волки, Пауки, Собаки, Крабы, Кроколиски, Хищные птицы, Прыгуаны, Химеры, Черви, Акиры)." },
-    { id = "DODGE",        short = "|TInterface\\ICONS\\Spell_Nature_Invisibilty:13:13:0:0|t Уклонение +30%", label = "|TInterface\\ICONS\\Spell_Nature_Invisibilty:14:14:0:0|t Уклонение пета +30% / Стелс",  desc = "Абилка семейства: повышает уклонение питомца на 30% (Кошки, Лисицы, Змеи, Обезьяны, Дракондоры, Шерстоперые, Прыгуны, Крылатые змеи)." },
-    { id = "HEAL",         short = "|T236165:13:13:0:0|t Подхил (Дух зверя)",                                label = "|T236165:14:14:0:0|t Духовное исцеление (Подхил)",                                     desc = "Уникальная способность Духов зверя: лечит выбранного союзника или самого охотника и позволяет ходить в стелсе." },
-    { id = "EXOTIC",       short = "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:13:13:0:0|t Экзотика (БМ)", label = "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:14:14:0:0|t Экзотика (только БМ)",     desc = "Экзотические семейства, доступные только специализации «Повелитель Зверей»." },
-    { id = "TOME",         short = "|TInterface\\ICONS\\INV_Misc_Book_09:13:13:0:0|t С фолиантом",            label = "|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t Требуется Фолиант / Предмет",  desc = "Звери и семейства, требующие изучения особых книг или предметов приручения (Флорафавны, Дикороги, Механизмы, Шерстоперые, Кровавые чудовища, Нежить, Облачные змеи, Малые дракониды, Гаргоны)." },
-    { id = "RARE_ONLY",    short = ICON_STAR .. " Редкие и Секреты",                                         label = ICON_STAR .. " Только Редкие / Духи / Секретные",                                      desc = "Показать только рарников, секретных питомцев, боссов подземелий и Духов зверя." },
+    {
+        id = "ALL",
+        short = "Трейты и абилки",
+        shortEN = "Traits & Abilities",
+        label = "Все трейты и абилки",
+        labelEN = "All Traits & Abilities",
+        desc = "Показать всех зверей без фильтра по боевым способностям и трейтам.",
+        descEN = "Show all beasts without filtering by combat abilities or traits.",
+    },
+    {
+        id = "BL",
+        short = "|TInterface\\ICONS\\Spell_Nature_BloodLust:13:13:0:0|t Героизм / БЛ",
+        shortEN = "|TInterface\\ICONS\\Spell_Nature_BloodLust:13:13:0:0|t Bloodlust / Heroism",
+        label = "|TInterface\\ICONS\\Spell_Nature_BloodLust:14:14:0:0|t Героизм / БЛ (+10% Leech)",
+        labelEN = "|TInterface\\ICONS\\Spell_Nature_BloodLust:14:14:0:0|t Bloodlust / Heroism (+10% Leech)",
+        desc = "Трейт Свирепости: Древняя истерия (+30% скорости боя группе/рейду на 40 сек) и +10% к самоисцелению.",
+        descEN = "Ferocity trait: Primal Rage (+30% Haste for all party/raid members for 40 sec) and +10% Leech.",
+    },
+    {
+        id = "TENACITY_DEF",
+        short = "|TInterface\\ICONS\\Spell_Nature_SpiritArmor:13:13:0:0|t Сейв -20% и +5% ХП",
+        shortEN = "|TInterface\\ICONS\\Spell_Nature_SpiritArmor:13:13:0:0|t -20% DR & +5% HP",
+        label = "|TInterface\\ICONS\\Spell_Nature_SpiritArmor:14:14:0:0|t Личный сейв -20% и +5% ХП",
+        labelEN = "|TInterface\\ICONS\\Spell_Nature_SpiritArmor:14:14:0:0|t Survival of the Fittest (-20% DR & +5% HP)",
+        desc = "Трейт Упорства: Выживает сильнейший (снижает получаемый урон на 20% на 6 сек) и +5% к запасу здоровья.",
+        descEN = "Tenacity trait: Survival of the Fittest (reduces all damage taken by 20% for 6 sec) and +5% maximum health.",
+    },
+    {
+        id = "CUNNING_FREE",
+        short = "|TInterface\\ICONS\\Ability_Hunter_Masterscall:13:13:0:0|t Свобода и +8% бега",
+        shortEN = "|TInterface\\ICONS\\Ability_Hunter_Masterscall:13:13:0:0|t Freedom & +8% Speed",
+        label = "|TInterface\\ICONS\\Ability_Hunter_Masterscall:14:14:0:0|t Приказ хозяина и +8% бега",
+        labelEN = "|TInterface\\ICONS\\Ability_Hunter_Masterscall:14:14:0:0|t Master's Call & +8% Move Speed",
+        desc = "Трейт Хитрости: снимает все эффекты обездвиживания и замедления с цели и даёт +8% к скорости бега.",
+        descEN = "Cunning trait: removes all root and movement-impairing effects and grants +8% movement speed.",
+    },
+    {
+        id = "DISPEL",
+        short = "|TInterface\\ICONS\\Spell_Nature_NullifyDisease:13:13:0:0|t Диспел магии",
+        shortEN = "|TInterface\\ICONS\\Spell_Nature_NullifyDisease:13:13:0:0|t Magic / Enrage Dispel",
+        label = "|TInterface\\ICONS\\Spell_Nature_NullifyDisease:14:14:0:0|t Диспел магии + исступления",
+        labelEN = "|TInterface\\ICONS\\Spell_Nature_NullifyDisease:14:14:0:0|t Dispel Magic & Enrage",
+        desc = "Абилка семейства: снимает с врага 1 магический бафф и 1 эффект исступления (Духи зверя, Скаты, Олени, Нетопыри, Мотыльки, Чирки, Водомерки, Спороскаты).",
+        descEN = "Family ability: removes 1 Magic and 1 Enrage effect from an enemy (Spirit Beasts, Rays, Stags, Bats, Moths, Waterfowl, Water Striders, Sporebats).",
+    },
+    {
+        id = "MORTAL",
+        short = "|TInterface\\ICONS\\Ability_Warrior_SavageBlow:13:13:0:0|t Срез хила -50%",
+        shortEN = "|TInterface\\ICONS\\Ability_Warrior_SavageBlow:13:13:0:0|t Mortal Wounds (-50%)",
+        label = "|TInterface\\ICONS\\Ability_Warrior_SavageBlow:14:14:0:0|t Смертельные раны (-50% хила)",
+        labelEN = "|TInterface\\ICONS\\Ability_Warrior_SavageBlow:14:14:0:0|t Mortal Wounds (-50% Healing)",
+        desc = "Абилка семейства: уменьшает получаемое целью исцеление на 50% (Дьявозавры, Скорпиды, Ящеры, Гиены, Дикороги, Осы, Падальщики, Опустошители, Речные чудища, Грызуны, Гидры, Ящерицы).",
+        descEN = "Family ability: reduces healing received by the target by 50% (Devilsaurs, Scorpids, Raptors, Hyenas, Direhorns, Wasps, Carrion Birds, Ravagers, Riverbeasts, Rodents, Hydras, Lizards).",
+    },
+    {
+        id = "TANK",
+        short = "|TInterface\\ICONS\\Ability_Defend:13:13:0:0|t Танко-щит -50%",
+        shortEN = "|TInterface\\ICONS\\Ability_Defend:13:13:0:0|t Tank Shield (-50%)",
+        label = "|TInterface\\ICONS\\Ability_Defend:14:14:0:0|t Танко-щит (-50% урона по пету)",
+        labelEN = "|TInterface\\ICONS\\Ability_Defend:14:14:0:0|t Tank Shield (-50% Pet Damage Taken)",
+        desc = "Абилка семейства: мощное снижение урона по самому питомцу на 40–60% (Копытни, Чешуешкурые, Черепахи, Медведи, Жуки, Механизмы, Гончие недр, Панцирники, Кабаны, Гориллы, Мамонты).",
+        descEN = "Family ability: powerful 40-60% damage reduction shield on the pet (Clefthooves, Scalehides, Turtles, Bears, Beetles, Mechanicals, Core Hounds, Carapids, Boars, Gorillas, Mammoths).",
+    },
+    {
+        id = "SLOW",
+        short = "|TInterface\\ICONS\\Spell_Frost_ChainsOfIce:13:13:0:0|t Замедление -50%",
+        shortEN = "|TInterface\\ICONS\\Spell_Frost_ChainsOfIce:13:13:0:0|t Slow / Snare (-50%)",
+        label = "|TInterface\\ICONS\\Spell_Frost_ChainsOfIce:14:14:0:0|t Замедление врага (-50% бега)",
+        labelEN = "|TInterface\\ICONS\\Spell_Frost_ChainsOfIce:14:14:0:0|t Slow Target (-50% Move Speed)",
+        desc = "Абилка семейства: замедляет скорость передвижения цели на 50% (Волки, Пауки, Собаки, Крабы, Кроколиски, Хищные птицы, Прыгуаны, Химеры, Черви, Акиры).",
+        descEN = "Family ability: reduces target movement speed by 50% (Wolves, Spiders, Hounds, Crabs, Crocolisks, Birds of Prey, Warp Stalkers, Chimaeras, Worms, Aqiri).",
+    },
+    {
+        id = "DODGE",
+        short = "|TInterface\\ICONS\\Spell_Nature_Invisibilty:13:13:0:0|t Уклонение +30%",
+        shortEN = "|TInterface\\ICONS\\Spell_Nature_Invisibilty:13:13:0:0|t Dodge +30% / Stealth",
+        label = "|TInterface\\ICONS\\Spell_Nature_Invisibilty:14:14:0:0|t Уклонение пета +30% / Стелс",
+        labelEN = "|TInterface\\ICONS\\Spell_Nature_Invisibilty:14:14:0:0|t Pet Dodge +30% / Prowl",
+        desc = "Абилка семейства: повышает уклонение питомца на 30% (Кошки, Лисицы, Змеи, Обезьяны, Дракондоры, Шерстоперые, Прыгуны, Крылатые змеи).",
+        descEN = "Family ability: increases pet dodge chance by 30% (Cats, Foxes, Serpents, Monkeys, Dragonhawks, Feathermanes, Hoppers, Wind Serpents).",
+    },
+    {
+        id = "HEAL",
+        short = "|T236165:13:13:0:0|t Подхил (Дух зверя)",
+        shortEN = "|T236165:13:13:0:0|t Spirit Mend (Heal)",
+        label = "|T236165:14:14:0:0|t Духовное исцеление (Подхил)",
+        labelEN = "|T236165:14:14:0:0|t Spirit Mend (Spirit Beast Heal)",
+        desc = "Уникальная способность Духов зверя: лечит выбранного союзника или самого охотника и позволяет ходить в стелсе.",
+        descEN = "Unique Spirit Beast ability: heals a friendly target over 10 sec and allows prowling in stealth.",
+    },
+    {
+        id = "EXOTIC",
+        short = "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:13:13:0:0|t Экзотика (БМ)",
+        shortEN = "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:13:13:0:0|t Exotic (BM Only)",
+        label = "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:14:14:0:0|t Экзотика (только БМ)",
+        labelEN = "|TInterface\\ICONS\\Ability_Hunter_BeastMastery:14:14:0:0|t Exotic Families (BM Only)",
+        desc = "Экзотические семейства, доступные только специализации «Повелитель Зверей».",
+        descEN = "Exotic families tameable exclusively by Beast Mastery Hunters.",
+    },
+    {
+        id = "TOME",
+        short = "|TInterface\\ICONS\\INV_Misc_Book_09:13:13:0:0|t С фолиантом",
+        shortEN = "|TInterface\\ICONS\\INV_Misc_Book_09:13:13:0:0|t Requires Tome",
+        label = "|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t Требуется Фолиант / Предмет",
+        labelEN = "|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t Requires Taming Tome / Item",
+        desc = "Звери и семейства, требующие изучения особых книг или предметов приручения (Флорафавны, Дикороги, Механизмы, Шерстоперые, Кровавые чудовища, Нежить, Облачные змеи, Малые дракониды, Гаргоны).",
+        descEN = "Beasts and families that require learning special Taming Tomes or items (Florafauns, Direhorns, Mechanicals, Feathermanes, Blood Beasts, Undead, Cloud Serpents, Lesser Dragonkin, Gargons).",
+    },
+    {
+        id = "RARE_ONLY",
+        short = ICON_STAR .. " Редкие и Секреты",
+        shortEN = ICON_STAR .. " Rares & Secrets",
+        label = ICON_STAR .. " Только Редкие / Духи / Секретные",
+        labelEN = ICON_STAR .. " Rare Spawns / Spirit Beasts / Secrets",
+        desc = "Показать только рарников, секретных питомцев, боссов подземелий и Духов зверя.",
+        descEN = "Show only rare spawns, secret pets, dungeon/raid bosses, and Spirit Beasts.",
+    },
 }
+
+local function GetRoleFilterShort(rf)
+    if not rf then return "" end
+    return (addon:IsEnglish() and rf.shortEN) or rf.short or rf.label
+end
+
+local function GetRoleFilterLabel(rf)
+    if not rf then return "" end
+    return (addon:IsEnglish() and rf.labelEN) or rf.label
+end
+
+local function GetRoleFilterDesc(rf)
+    if not rf then return "" end
+    return (addon:IsEnglish() and rf.descEN) or rf.desc or ""
+end
 
 local SPEC_ORDER = { "FEROCITY", "CUNNING", "TENACITY" }
 
@@ -331,11 +460,11 @@ local function CloseAllDropdowns()
 end
 
 local RARITY_BADGES = {
-    SPIRIT = { text = ICON_STAR .. " Дух Зверя", color = { 0.35, 0.85, 1.0 } },
-    SECRET = { text = ICON_STAR .. " Секрет",    color = { 0.82, 0.45, 1.0 } },
-    BOSS   = { text = ICON_STAR .. " Босс",      color = { 1.0,  0.55, 0.15 } },
-    RARE   = { text = ICON_STAR .. " Рарник",    color = { 1.0,  0.82, 0.15 } },
-    COMMON = { text = "Обычный",                 color = { 0.72, 0.72, 0.75 } },
+    SPIRIT = { text = ICON_STAR .. " Дух Зверя", textEN = ICON_STAR .. " Spirit Beast", color = { 0.35, 0.85, 1.0 } },
+    SECRET = { text = ICON_STAR .. " Секрет",    textEN = ICON_STAR .. " Secret",       color = { 0.82, 0.45, 1.0 } },
+    BOSS   = { text = ICON_STAR .. " Босс",      textEN = ICON_STAR .. " Boss",         color = { 1.0,  0.55, 0.15 } },
+    RARE   = { text = ICON_STAR .. " Рарник",    textEN = ICON_STAR .. " Rare Spawn",   color = { 1.0,  0.82, 0.15 } },
+    COMMON = { text = "Обычный",                 textEN = "Common",                     color = { 0.72, 0.72, 0.75 } },
 }
 
 -- ============================================================================
@@ -369,12 +498,36 @@ function addon:InitUI()
 
     local winTitle = topHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     winTitle:SetPoint("CENTER", topHeader, "CENTER", 0, 0)
-    winTitle:SetText("|cffffd100Звери охотника — Модели|r")
+    winTitle:SetText("|cffffd100" .. addon:L("TITLE_ALL_FAMILIES") .. "|r")
     ui.winTitle = winTitle
 
     local closeBtn = CreateWardrobeButton(topHeader, 22, 22, "X", false)
     closeBtn:SetPoint("RIGHT", topHeader, "RIGHT", -4, 0)
     closeBtn:SetScript("OnClick", function() f:Hide() end)
+
+    -- Кнопка быстрого переключения языка RU <-> EN (для скриншотов на CurseForge без /reload!)
+    local langBtn = CreateWardrobeButton(topHeader, 34, 22, addon:L("LANG_BTN_LABEL"), true)
+    langBtn:SetPoint("RIGHT", closeBtn, "LEFT", -4, 0)
+    langBtn:SetScript("OnEnter", function(self)
+        self:SetBackdropColor(0.28, 0.22, 0.08, 0.98)
+        self:SetBackdropBorderColor(1.0, 0.85, 0.15, 1.0)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(addon:L("LANG_BTN_TOOLTIP_TITLE"), 1, 0.85, 0.2)
+        GameTooltip:AddLine(addon:L("LANG_BTN_TOOLTIP_DESC"), 0.9, 0.9, 0.9, true)
+        GameTooltip:Show()
+    end)
+    langBtn:SetScript("OnLeave", function(self)
+        self:SetBackdropColor(unpack(self.defaultBg))
+        self:SetBackdropBorderColor(unpack(self.defaultBorder))
+        GameTooltip:Hide()
+    end)
+    langBtn:SetScript("OnClick", function(self)
+        addon:ToggleLanguage()
+        if GameTooltip:IsOwned(self) then
+            self:GetScript("OnEnter")(self)
+        end
+    end)
+    ui.langBtn = langBtn
 
     -- Круглый портрет-медальон в левом верхнем углу (как в CollectionsJournal)
     local portraitBox = CreateFrame("Frame", nil, f, "BackdropTemplate")
@@ -396,7 +549,7 @@ function addon:InitUI()
     subHeader:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, -34)
     subHeader:SetHeight(28)
 
-    local tabAllModels = CreateWardrobeButton(subHeader, 90, 22, "Все модели", false)
+    local tabAllModels = CreateWardrobeButton(subHeader, 90, 22, addon:L("TAB_ALL_MODELS"), false)
     tabAllModels:SetPoint("LEFT", subHeader, "LEFT", 0, 0)
     tabAllModels:SetScript("OnClick", function()
         ui.viewMode = "BEASTS"
@@ -408,7 +561,7 @@ function addon:InitUI()
     end)
     ui.tabAllModels = tabAllModels
 
-    local tabMissing = CreateWardrobeButton(subHeader, 96, 22, "Несобранные", false)
+    local tabMissing = CreateWardrobeButton(subHeader, 96, 22, addon:L("TAB_UNCOLLECTED"), false)
     tabMissing:SetPoint("LEFT", tabAllModels, "RIGHT", 4, 0)
     tabMissing:SetScript("OnClick", function()
         ui.viewMode = "BEASTS"
@@ -420,7 +573,7 @@ function addon:InitUI()
     end)
     ui.tabMissing = tabMissing
 
-    local tabTomes = CreateWardrobeButton(subHeader, 114, 22, ICON_BOOK .. " Фолианты (11)", false)
+    local tabTomes = CreateWardrobeButton(subHeader, 114, 22, ICON_BOOK .. addon:L("TAB_TOMES_FMT", #(addon.TamingTomesOrder or {})), false)
     tabTomes:SetPoint("LEFT", tabMissing, "RIGHT", 4, 0)
     tabTomes:SetScript("OnClick", function()
         ui.viewMode = "TOMES"
@@ -464,7 +617,8 @@ function addon:InitUI()
 
     local searchPlaceholder = searchFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     searchPlaceholder:SetPoint("LEFT", searchFrame, "LEFT", 8, 0)
-    searchPlaceholder:SetText("Поиск зверя / зоны / книги...")
+    searchPlaceholder:SetText(addon:L("SEARCH_PLACEHOLDER"))
+    ui.searchPlaceholder = searchPlaceholder
 
     local clearSearchBtn = CreateWardrobeButton(searchFrame, 16, 16, "x", false)
     clearSearchBtn:SetPoint("RIGHT", searchFrame, "RIGHT", -3, 0)
@@ -517,7 +671,7 @@ function addon:InitUI()
     filterBar:SetPoint("TOPRIGHT", wardrobeCanvas, "TOPRIGHT", -12, -10)
     filterBar:SetHeight(36)
 
-    local roleDropdownBtn = CreateWardrobeButton(filterBar, 184, 26, "Трейты и абилки [v]", false)
+    local roleDropdownBtn = CreateWardrobeButton(filterBar, 184, 26, addon:L("FILTER_TRAITS_DEFAULT"), false)
     roleDropdownBtn:SetPoint("LEFT", filterBar, "LEFT", 0, 0)
     ui.roleDropdownBtn = roleDropdownBtn
 
@@ -532,16 +686,17 @@ function addon:InitUI()
     ui.roleMenuItems = {}
 
     for idx, rf in ipairs(ROLE_FILTERS) do
-        local item = CreateWardrobeButton(roleMenu, 276, 19, rf.label, false)
+        local item = CreateWardrobeButton(roleMenu, 276, 19, GetRoleFilterLabel(rf), false)
         item:SetPoint("TOPLEFT", roleMenu, "TOPLEFT", 4, -4 - (idx - 1) * 21)
         item.label:SetJustifyH("LEFT")
         item.roleID = rf.id
+        item.rf = rf
         item:SetScript("OnEnter", function(self)
             self:SetBackdropColor(0.24, 0.19, 0.08, 0.98)
             self:SetBackdropBorderColor(1.0, 0.82, 0.0, 1.0)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(rf.label, 1, 0.82, 0)
-            GameTooltip:AddLine(rf.desc, 1, 1, 1, true)
+            GameTooltip:SetText(GetRoleFilterLabel(self.rf), 1, 0.82, 0)
+            GameTooltip:AddLine(GetRoleFilterDesc(self.rf), 1, 1, 1, true)
             GameTooltip:Show()
         end)
         item:SetScript("OnLeave", function(self)
@@ -628,8 +783,8 @@ function addon:InitUI()
 
     allSpecCircle:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText("Все семейства зверей (61)", 1, 0.85, 0.2)
-        GameTooltip:AddLine("Показать все 2 635 приручаемых моделей во всех трёх классах питомцев (Свирепость, Хитрость, Упорство).", 0.9, 0.9, 0.9, true)
+        GameTooltip:SetText(addon:L("TT_ALL_FAMILIES_TITLE"), 1, 0.85, 0.2)
+        GameTooltip:AddLine(addon:L("TT_ALL_FAMILIES_DESC"), 0.9, 0.9, 0.9, true)
         GameTooltip:Show()
     end)
     allSpecCircle:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -674,7 +829,7 @@ function addon:InitUI()
             local circleBtn = CreateRoundSpecIcon(filterBar, 30, specDef.icon)
             circleBtn:SetPoint("LEFT", prevAnchor, "RIGHT", 10, 0)
 
-            local dropBtn = CreateWardrobeButton(filterBar, 112, 24, specDef.name .. " [v]", false)
+            local dropBtn = CreateWardrobeButton(filterBar, 112, 24, addon:GetSpecName(specDef) .. " [v]", false)
             dropBtn:SetPoint("LEFT", circleBtn, "RIGHT", 3, 0)
             prevAnchor = dropBtn
 
@@ -697,17 +852,20 @@ function addon:InitUI()
             local menuBtns = {}
 
             -- Верхний пункт в выпадашке: «Все — Свирепость / Хитрость / Упорство»
-            local allSpecItem = CreateWardrobeButton(specMenu, menuW - 8, 19, string.format("|T%s:14:14:0:0|t Все — %s (%d)", tostring(specDef.icon), specDef.name, #famsInSpec), true)
+            local allSpecItem = CreateWardrobeButton(specMenu, menuW - 8, 19, string.format("|T%s:14:14:0:0|t " .. addon:L("SPEC_MENU_ALL_FMT", addon:GetSpecName(specDef), #famsInSpec), tostring(specDef.icon)), true)
             allSpecItem:SetPoint("TOPLEFT", specMenu, "TOPLEFT", 4, -4)
             allSpecItem.label:SetJustifyH("LEFT")
             allSpecItem.familyID = "ALL"
+            allSpecItem.specDef = specDef
+            allSpecItem.famCount = #famsInSpec
             allSpecItem:SetScript("OnEnter", function(self)
                 self:SetBackdropColor(0.26, 0.20, 0.08, 0.98)
                 self:SetBackdropBorderColor(1.0, 0.82, 0.0, 1.0)
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText("Все семейства: " .. specDef.color .. specDef.name .. "|r", 1, 0.85, 0.2)
-                GameTooltip:AddLine("Активно: |cffffd100" .. specDef.activeName .. "|r", 1, 1, 1, true)
-                GameTooltip:AddLine("Пассивно: |cff00ff96" .. specDef.passiveName .. "|r — " .. specDef.passiveDesc, 0.85, 0.85, 0.85, true)
+                local sName = addon:GetSpecName(specDef)
+                GameTooltip:SetText((addon:IsEnglish() and "All Families: " or "Все семейства: ") .. specDef.color .. sName .. "|r", 1, 0.85, 0.2)
+                GameTooltip:AddLine(addon:L("TT_ACTIVE_LABEL") .. "|cffffd100" .. addon:GetSpecActiveName(specDef) .. "|r", 1, 1, 1, true)
+                GameTooltip:AddLine(addon:L("TT_PASSIVE_LABEL") .. "|cff00ff96" .. addon:GetSpecPassiveName(specDef) .. "|r — " .. addon:GetSpecPassiveDesc(specDef), 0.85, 0.85, 0.85, true)
                 GameTooltip:Show()
             end)
             allSpecItem:SetScript("OnLeave", function(self)
@@ -732,7 +890,7 @@ function addon:InitUI()
             end)
             table.insert(menuBtns, allSpecItem)
 
-            -- Алфавитный список семейств этого класса (Волки, Пауки и т.д. с (Экзот) и (Фолиант) в скобках)
+            -- Алфавитный список семейств этого класса
             for fIdx, famDef in ipairs(famsInSpec) do
                 local fBtn = CreateWardrobeButton(specMenu, menuW - 8, 18, GetFamilyDropdownText(famDef), false)
                 fBtn:SetPoint("TOPLEFT", specMenu, "TOPLEFT", 4, -8 - fIdx * 19)
@@ -741,28 +899,32 @@ function addon:InitUI()
                 fBtn.famDef = famDef
 
                 fBtn:SetScript("OnEnter", function(self)
+                    local fd = self.famDef
+                    if not fd then return end
                     self:SetBackdropColor(0.24, 0.19, 0.08, 0.98)
                     self:SetBackdropBorderColor(1.0, 0.82, 0.0, 1.0)
                     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                    GameTooltip:SetText(famDef.name, 1, 0.85, 0.2)
-                    local exTag = famDef.exotic and " |cff00ccff(Экзотика — только БМ)|r" or ""
-                    GameTooltip:AddLine("Специализация: " .. specDef.color .. specDef.name .. "|r" .. exTag, 0.9, 0.9, 0.9)
-                    GameTooltip:AddLine("Активно: |cffffd100" .. specDef.activeName .. "|r", 0.85, 0.85, 0.85)
-                    if famDef.familySkill then
-                        GameTooltip:AddLine("Способность: |cff00ff96" .. famDef.familySkill .. "|r", 1, 1, 1, true)
+                    GameTooltip:SetText(addon:GetFamilyName(fd), 1, 0.85, 0.2)
+                    local exTag = fd.exotic and addon:L("TAG_EXOTIC_FULL") or ""
+                    GameTooltip:AddLine(addon:L("TT_SPEC_LABEL") .. specDef.color .. addon:GetSpecName(specDef) .. "|r" .. exTag, 0.9, 0.9, 0.9)
+                    GameTooltip:AddLine(addon:L("TT_ACTIVE_LABEL") .. "|cffffd100" .. addon:GetSpecActiveName(specDef) .. "|r", 0.85, 0.85, 0.85)
+                    local fSkill = addon:GetFamilySkill(fd)
+                    if fSkill ~= "" then
+                        GameTooltip:AddLine(addon:L("TT_FAMILY_SKILL_LABEL") .. "|cff00ff96" .. fSkill .. "|r", 1, 1, 1, true)
                     end
-                    if famDef.familyDesc then
+                    local fDesc = addon:GetFamilyDesc(fd)
+                    if fDesc then
                         GameTooltip:AddLine(" ")
-                        GameTooltip:AddLine(famDef.familyDesc, 0.85, 0.85, 0.85, true)
+                        GameTooltip:AddLine(fDesc, 0.85, 0.85, 0.85, true)
                     end
-                    if famDef.tome then
-                        local learned, tome = addon:IsTomeLearned(famDef.tome)
+                    if fd.tome then
+                        local learned, tome = addon:IsTomeLearned(fd.tome)
                         if tome then
                             GameTooltip:AddLine(" ")
                             if learned then
-                                GameTooltip:AddLine(ICON_BOOK .. " Фолиант изучен: " .. tome.name, 0.2, 1.0, 0.4)
+                                GameTooltip:AddLine(ICON_BOOK .. addon:L("TT_TOME_LEARNED_FMT", addon:GetTomeName(tome)), 0.2, 1.0, 0.4)
                             else
-                                GameTooltip:AddLine(ICON_BOOK .. " Требуется: " .. tome.name, 1.0, 0.4, 0.2)
+                                GameTooltip:AddLine(ICON_BOOK .. addon:L("TT_TOME_REQUIRED_FMT", addon:GetTomeName(tome)), 1.0, 0.4, 0.2)
                             end
                         end
                     end
@@ -796,11 +958,14 @@ function addon:InitUI()
 
             local function ShowSpecTooltip(owner)
                 GameTooltip:SetOwner(owner, "ANCHOR_TOP")
-                GameTooltip:SetText(specDef.color .. specDef.name .. "|r (" .. #famsInSpec .. " семейств)", 1, 0.85, 0.2)
-                GameTooltip:AddLine("Активно: |cffffd100" .. specDef.activeName .. "|r — " .. specDef.activeDesc, 0.9, 0.9, 0.9, true)
-                GameTooltip:AddLine("Пассивно: |cff00ff96" .. specDef.passiveName .. "|r — " .. specDef.passiveDesc, 0.85, 0.85, 0.85, true)
+                local sName = addon:GetSpecName(specDef)
+                GameTooltip:SetText(specDef.color .. sName .. "|r (" .. #famsInSpec .. (addon:IsEnglish() and " families)" or " семейств)"), 1, 0.85, 0.2)
+                GameTooltip:AddLine(addon:L("TT_ACTIVE_LABEL") .. "|cffffd100" .. addon:GetSpecActiveName(specDef) .. "|r — " .. addon:GetSpecActiveDesc(specDef), 0.9, 0.9, 0.9, true)
+                GameTooltip:AddLine(addon:L("TT_PASSIVE_LABEL") .. "|cff00ff96" .. addon:GetSpecPassiveName(specDef) .. "|r — " .. addon:GetSpecPassiveDesc(specDef), 0.85, 0.85, 0.85, true)
                 GameTooltip:AddLine(" ")
-                GameTooltip:AddLine("|cffffd100ЛКМ:|r Выбрать семейство из списка  |  |cffffd100ПКМ:|r Сбросить", 0.7, 0.9, 1.0)
+                GameTooltip:AddLine(addon:IsEnglish()
+                    and "|cffffd100LMB:|r Choose a family from the list  |  |cffffd100RMB:|r Reset"
+                    or "|cffffd100ЛКМ:|r Выбрать семейство из списка  |  |cffffd100ПКМ:|r Сбросить", 0.7, 0.9, 1.0)
                 GameTooltip:Show()
             end
 
@@ -849,6 +1014,7 @@ function addon:InitUI()
             ui.specGroups[specID] = {
                 specID = specID,
                 specDef = specDef,
+                famsInSpec = famsInSpec,
                 circleBtn = circleBtn,
                 dropBtn = dropBtn,
                 menu = specMenu,
@@ -918,39 +1084,44 @@ function addon:InitUI()
                 self:SetBackdropBorderColor(1.0, 0.85, 0.20, 1.0)
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 local learned = addon:IsTomeLearned(self.tome.id)
-                GameTooltip:SetText(ICON_BOOK .. " " .. self.tome.name, 1, 0.85, 0.2)
-                if self.tome.enName then
+                local tName = addon:GetTomeName(self.tome)
+                local tCat = addon:GetTomeCategoryName(self.tome)
+                local tDrop = addon:GetTomeDropRateText(self.tome)
+                local tExp = addon:GetTomeExpectedKillsText(self.tome)
+                local tSrc = addon:GetTomeSource(self.tome)
+                GameTooltip:SetText(ICON_BOOK .. " " .. tName, 1, 0.85, 0.2)
+                if not addon:IsEnglish() and self.tome.enName then
                     GameTooltip:AddLine(self.tome.enName, 0.72, 0.72, 0.78)
                 end
-                if self.tome.categoryName then
-                    GameTooltip:AddLine("Открывает: |cff66ff99" .. self.tome.categoryName .. "|r (" .. tostring(self.tome.beastCount or 0) .. " мод.)", 0.9, 0.9, 0.9, true)
+                if tCat ~= "" then
+                    GameTooltip:AddLine(addon:L("TT_CARD_UNLOCKS_FMT", tCat, self.tome.beastCount or 0), 0.9, 0.9, 0.9, true)
                 end
                 if learned then
-                    GameTooltip:AddLine(ICON_READY .. " |cff00ff96Навык изучен!|r", 0.2, 1.0, 0.4)
+                    GameTooltip:AddLine(ICON_READY .. addon:L("TT_CARD_SKILL_LEARNED"), 0.2, 1.0, 0.4)
                 else
-                    GameTooltip:AddLine(ICON_STAR .. " |cffff8800Ещё не изучен|r", 1.0, 0.55, 0.2)
+                    GameTooltip:AddLine(ICON_STAR .. addon:L("TT_CARD_SKILL_UNLEARNED"), 1.0, 0.55, 0.2)
                 end
-                if self.tome.dropRateText then
-                    GameTooltip:AddLine("|cffffd100Шанс выпадения:|r |cff00ccff" .. self.tome.dropRateText .. "|r", 0.9, 0.9, 0.9, true)
+                if tDrop then
+                    GameTooltip:AddLine(addon:L("TT_CARD_DROP_CHANCE_FMT", tDrop), 0.9, 0.9, 0.9, true)
                 end
-                if self.tome.expectedKillsText then
-                    GameTooltip:AddLine("|cffffd100Сколько бить:|r |cffffffff" .. self.tome.expectedKillsText .. "|r", 0.85, 0.85, 0.9, true)
+                if tExp then
+                    GameTooltip:AddLine(addon:L("TT_CARD_EXPECTED_FMT", tExp), 0.85, 0.85, 0.9, true)
                 end
                 if self.tome.isDrop then
                     local tries, luckPct = addon:GetTomeAttempts(self.tome.id)
                     if luckPct and luckPct > 0 then
-                        GameTooltip:AddLine(string.format("|cffffd100Твои траи (убито):|r |cffffcc00%d|r |cffaaaaaa(накопленная удача: %.1f%%)|r", tries, luckPct))
+                        GameTooltip:AddLine(addon:L("TT_CARD_TRIES_LUCK_FMT", tries, luckPct))
                     else
-                        GameTooltip:AddLine(string.format("|cffffd100Твои траи (убито):|r |cffffcc00%d|r", tries))
+                        GameTooltip:AddLine(addon:L("TT_CARD_TRIES_FMT", tries))
                     end
                 end
-                if self.tome.source then
+                if tSrc then
                     GameTooltip:AddLine(" ")
-                    GameTooltip:AddLine("|cffffd100Где достать:|r " .. self.tome.source, 0.92, 0.90, 0.85, true)
+                    GameTooltip:AddLine(addon:L("TT_CARD_WHERE_GET_FMT", tSrc), 0.92, 0.90, 0.85, true)
                 end
                 GameTooltip:AddLine(" ")
-                GameTooltip:AddLine("|cffffd100ЛКМ:|r Подробное досье  |  |cffffd100ПКМ:|r Проложить маршрут", 0.7, 0.9, 1.0)
-                GameTooltip:AddLine("|cffffd100Shift+ЛКМ:|r Показать всех зверей этого фолианта", 0.6, 1.0, 0.7)
+                GameTooltip:AddLine(addon:L("TT_CARD_TOME_HELP1"), 0.7, 0.9, 1.0)
+                GameTooltip:AddLine(addon:L("TT_CARD_TOME_HELP2"), 0.6, 1.0, 0.7)
                 GameTooltip:Show()
                 return
             end
@@ -960,27 +1131,33 @@ function addon:InitUI()
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             local fam = addon.FamilyByID[self.beast.family]
             local spec = fam and addon.PetSpecs[fam.spec]
-            GameTooltip:SetText(self.beast.name, 1, 0.85, 0.2)
-            if self.beast.subTitle then
-                GameTooltip:AddLine(self.beast.subTitle, 0.8, 0.8, 0.85, true)
+            GameTooltip:SetText(addon:GetBeastName(self.beast), 1, 0.85, 0.2)
+            local bSub = addon:GetBeastSubTitle(self.beast)
+            if bSub ~= "" then
+                GameTooltip:AddLine(bSub, 0.8, 0.8, 0.85, true)
             end
             if fam then
-                GameTooltip:AddDoubleLine("Семейство: " .. fam.name, spec and (spec.color .. spec.name .. "|r") or "")
-                GameTooltip:AddLine("Умеет: |cff00ff96" .. (fam.familySkill or "") .. "|r", 0.9, 0.9, 0.9, true)
+                GameTooltip:AddDoubleLine(addon:L("TT_CARD_FAMILY_FMT", addon:GetFamilyName(fam)), spec and (spec.color .. addon:GetSpecName(spec) .. "|r") or "")
+                GameTooltip:AddLine(addon:L("TT_CARD_SKILL_FMT", addon:GetFamilySkill(fam)), 0.9, 0.9, 0.9, true)
             end
             if self.beast.tomes and #self.beast.tomes > 0 then
                 for _, tKey in ipairs(self.beast.tomes) do
-                    local tome = addon.TamingTomes and addon.TamingTomes[tKey]
+                    local learned, tome = addon:IsTomeLearned(tKey)
                     if tome then
-                        GameTooltip:AddLine(ICON_BOOK .. " |cffffaa00Книга:|r " .. tome.name, 1.0, 0.85, 0.55, true)
+                        if learned then
+                            GameTooltip:AddLine(ICON_BOOK .. addon:L("TT_CARD_TOME_OK_FMT", addon:GetTomeName(tome)), 0.4, 1.0, 0.5, true)
+                        else
+                            GameTooltip:AddLine(ICON_BOOK .. addon:L("TT_CARD_TOME_NEED_FMT", addon:GetTomeName(tome)), 1.0, 0.85, 0.55, true)
+                        end
                     end
                 end
             end
-            if self.beast.zone then
-                GameTooltip:AddLine("Где искать: |cff00ccff" .. self.beast.zone .. "|r", 0.9, 0.9, 0.9)
+            local bZone = addon:GetBeastZone(self.beast)
+            if bZone ~= "" then
+                GameTooltip:AddLine(addon:L("TT_CARD_ZONE_FMT", bZone), 0.9, 0.9, 0.9)
             end
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine("|cffffd100ЛКМ:|r Открыть 3D-досье справа  |  |cffffd100ПКМ:|r Проложить путь", 0.7, 0.9, 1.0)
+            GameTooltip:AddLine(addon:L("TT_CARD_BEAST_HELP"), 0.7, 0.9, 1.0)
             GameTooltip:Show()
         end)
 
@@ -1036,7 +1213,7 @@ function addon:InitUI()
 
     local pageText = pageBar:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     pageText:SetPoint("LEFT", pageBar, "LEFT", 16, 0)
-    pageText:SetText("Стр. 1/1")
+    pageText:SetText(addon:L("PAGE_FMT", 1, 1))
     ui.pageText = pageText
 
     local prevBtn = CreateWardrobeButton(pageBar, 28, 24, "<", false)
@@ -1077,7 +1254,7 @@ function addon:InitUI()
 
     local dockTitle = dockHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     dockTitle:SetPoint("CENTER", dockHeader, "CENTER", 0, 0)
-    dockTitle:SetText(ICON_PAW .. " |cffffd100Досье питомца|r")
+    dockTitle:SetText(ICON_PAW .. addon:L("DOCK_TITLE_BEAST"))
     ui.dockTitle = dockTitle
 
     local dockClose = CreateWardrobeButton(dockHeader, 22, 22, "X", false)
@@ -1104,7 +1281,8 @@ function addon:InitUI()
 
     local rotateHint = bigModelBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     rotateHint:SetPoint("BOTTOMRIGHT", bigModelBox, "BOTTOMRIGHT", -6, 4)
-    rotateHint:SetText("ЛКМ: вращать • Колёсико: зум")
+    rotateHint:SetText(addon:L("DOCK_ROTATE_HINT"))
+    ui.rotateHint = rotateHint
 
     local dockStatusBadge = bigModelBox:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     dockStatusBadge:SetPoint("TOPLEFT", bigModelBox, "TOPLEFT", 8, -8)
@@ -1157,7 +1335,7 @@ function addon:InitUI()
     ui.detailsFS = detailsFS
 
     -- НИЖНИЕ КНОПКИ В БОКОВОМ ДОКЕ
-    local btnNavigate = CreateWardrobeButton(dock, 354, 26, ICON_PIN .. " Проложить путь к зверю (TomTom + Карта)", true)
+    local btnNavigate = CreateWardrobeButton(dock, 354, 26, ICON_PIN .. addon:L("BTN_NAV_BEAST"), true)
     btnNavigate:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 10, 36)
     btnNavigate:SetScript("OnClick", function()
         if ui.viewMode == "TOMES" and ui.selectedTome then
@@ -1168,7 +1346,7 @@ function addon:InitUI()
     end)
     ui.btnNavigate = btnNavigate
 
-    local btnShowMap = CreateWardrobeButton(dock, 88, 22, "На карте", false)
+    local btnShowMap = CreateWardrobeButton(dock, 88, 22, addon:L("BTN_SHOW_MAP"), false)
     btnShowMap:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 10, 10)
     btnShowMap:SetScript("OnClick", function()
         if ui.viewMode == "TOMES" and ui.selectedTome then
@@ -1179,7 +1357,7 @@ function addon:InitUI()
     end)
     ui.btnShowMap = btnShowMap
 
-    local btnToggleCol = CreateWardrobeButton(dock, 118, 22, ICON_READY .. " Отметить своим", false)
+    local btnToggleCol = CreateWardrobeButton(dock, 118, 22, ICON_READY .. addon:L("BTN_MARK_COLLECTED"), false)
     btnToggleCol:SetPoint("LEFT", btnShowMap, "RIGHT", 4, 0)
     btnToggleCol:SetScript("OnClick", function()
         if ui.viewMode == "TOMES" and ui.selectedTome then
@@ -1204,8 +1382,9 @@ function addon:InitUI()
             ui.selectedBeast = nil
             addon:RefreshUI()
         elseif ui.selectedBeast and ui.selectedBeast.npcID then
-            local url = string.format("https://www.wowhead.com/ru/npc=%d", ui.selectedBeast.npcID)
-            addon:ShowCopyLinkPopup(url, ui.selectedBeast.name .. " — Wowhead")
+            local whPrefix = addon:IsEnglish() and "https://www.wowhead.com/npc=%d" or "https://www.wowhead.com/ru/npc=%d"
+            local url = string.format(whPrefix, ui.selectedBeast.npcID)
+            addon:ShowCopyLinkPopup(url, addon:GetBeastName(ui.selectedBeast) .. " — Wowhead")
         end
     end)
     ui.btnWowhead = btnWowhead
@@ -1215,24 +1394,80 @@ function addon:InitUI()
     btnPetopia:SetScript("OnClick", function()
         if ui.viewMode == "TOMES" and ui.selectedTome then
             local url
+            local isEN = addon:IsEnglish()
             if ui.selectedTome.itemID then
-                url = string.format("https://www.wowhead.com/ru/item=%d", ui.selectedTome.itemID)
+                url = string.format(isEN and "https://www.wowhead.com/item=%d" or "https://www.wowhead.com/ru/item=%d", ui.selectedTome.itemID)
             elseif ui.selectedTome.questID then
-                url = string.format("https://www.wowhead.com/ru/quest=%d", ui.selectedTome.questID)
+                url = string.format(isEN and "https://www.wowhead.com/quest=%d" or "https://www.wowhead.com/ru/quest=%d", ui.selectedTome.questID)
             else
                 url = "https://www.wow-petopia.com/"
             end
-            addon:ShowCopyLinkPopup(url, ui.selectedTome.name .. " — Wowhead")
+            addon:ShowCopyLinkPopup(url, addon:GetTomeName(ui.selectedTome) .. " — Wowhead")
         elseif ui.selectedBeast then
             local slug = ui.selectedBeast.lookID or ui.selectedBeast.id
             local url = string.format("https://www.wow-petopia.com/look.php?id=%s", tostring(slug))
-            addon:ShowCopyLinkPopup(url, ui.selectedBeast.name .. " — Petopia")
+            addon:ShowCopyLinkPopup(url, addon:GetBeastName(ui.selectedBeast) .. " — Petopia")
         end
     end)
     ui.btnPetopia = btnPetopia
 
     self:InitLDB()
     self:HookCollectionsJournal()
+    self:ApplyLocaleToStaticUI()
+end
+
+-- Мгновенное переключение всех статичных надписей, вкладок и выпадашек между RU и EN без /reload
+function addon:ApplyLocaleToStaticUI()
+    if ui.langBtn then
+        ui.langBtn:SetText(self:L("LANG_BTN_LABEL"))
+    end
+    if ui.tabAllModels then
+        ui.tabAllModels:SetText(self:L("TAB_ALL_MODELS"))
+    end
+    if ui.tabMissing then
+        ui.tabMissing:SetText(self:L("TAB_UNCOLLECTED"))
+    end
+    if ui.tabTomes then
+        ui.tabTomes:SetText(ICON_BOOK .. self:L("TAB_TOMES_FMT", #(self.TamingTomesOrder or {})))
+    end
+    if ui.searchPlaceholder then
+        ui.searchPlaceholder:SetText(self:L("SEARCH_PLACEHOLDER"))
+    end
+    if ui.rotateHint then
+        ui.rotateHint:SetText(self:L("DOCK_ROTATE_HINT"))
+    end
+    if ui.btnShowMap then
+        ui.btnShowMap:SetText(self:L("BTN_SHOW_MAP"))
+    end
+    if ui.journalBtn then
+        ui.journalBtn:SetText(ICON_PAW .. (self:IsEnglish() and " Hunter Pets" or " Звери охотника"))
+    end
+    if ui.roleMenuItems then
+        for _, item in ipairs(ui.roleMenuItems) do
+            if item.rf then
+                item:SetText(GetRoleFilterLabel(item.rf))
+            end
+        end
+    end
+    if ui.specGroups then
+        for _, sg in pairs(ui.specGroups) do
+            if sg.famsInSpec then
+                table.sort(sg.famsInSpec, function(a, b)
+                    return GetShortFamilyName(a) < GetShortFamilyName(b)
+                end)
+            end
+            for idx, mBtn in ipairs(sg.menuBtns or {}) do
+                if mBtn.familyID == "ALL" then
+                    mBtn:SetText(string.format("|T%s:14:14:0:0|t " .. self:L("SPEC_MENU_ALL_FMT", self:GetSpecName(sg.specDef), #(sg.famsInSpec or {})), tostring(sg.specDef.icon)))
+                elseif sg.famsInSpec and sg.famsInSpec[idx - 1] then
+                    local fd = sg.famsInSpec[idx - 1]
+                    mBtn.famDef = fd
+                    mBtn.familyID = fd.id
+                    mBtn:SetText(GetFamilyDropdownText(fd))
+                end
+            end
+        end
+    end
 end
 
 -- ============================================================================
@@ -1261,6 +1496,7 @@ function addon:RefreshFamilyStrip()
         local sg = ui.specGroups and ui.specGroups[specID]
         if sg then
             local isThisSpec = (ui.selectedSpec == specID)
+            local specTitle = self:GetSpecName(sg.specDef)
             if isThisSpec then
                 sg.circleBtn.ring:SetVertexColor(1.0, 0.85, 0.15, 1.0)
                 sg.circleBtn.glow:Show()
@@ -1270,14 +1506,14 @@ function addon:RefreshFamilyStrip()
                     local icStr = activeFamDef.icon and ("|T" .. tostring(activeFamDef.icon) .. ":13:13:0:0:64:64:5:59:5:59|t ") or ""
                     sg.dropBtn:SetText(icStr .. GetShortFamilyName(activeFamDef) .. " [v]")
                 else
-                    sg.dropBtn:SetText(sg.specDef.name .. ": Все [v]")
+                    sg.dropBtn:SetText(specTitle .. (self:IsEnglish() and ": All [v]" or ": Все [v]"))
                 end
             else
                 sg.circleBtn.ring:SetVertexColor(0.65, 0.65, 0.68, 0.90)
                 sg.circleBtn.glow:Hide()
                 sg.circleBtn:SetAlpha(0.86)
                 sg.dropBtn:SetActiveTab(false)
-                sg.dropBtn:SetText(sg.specDef.name .. " [v]")
+                sg.dropBtn:SetText(specTitle .. " [v]")
             end
 
             for _, mBtn in ipairs(sg.menuBtns or {}) do
@@ -1428,13 +1664,18 @@ local function BeastMatchesFilters(beast)
 
     if ui.searchText ~= "" then
         local s = ui.searchText
-        local matchName = string.find(string.lower(beast.name or ""), s, 1, true)
-        local matchSub = beast.subTitle and string.find(string.lower(beast.subTitle), s, 1, true)
+        local matchName = (beast.name and string.find(string.lower(beast.name), s, 1, true))
+            or (beast.nameEN and string.find(string.lower(beast.nameEN), s, 1, true))
+        local matchSub = (beast.subTitle and string.find(string.lower(beast.subTitle), s, 1, true))
+            or (beast.subTitleEN and string.find(string.lower(beast.subTitleEN), s, 1, true))
         local matchRuMod = beast.ruModelGroup and string.find(string.lower(beast.ruModelGroup), s, 1, true)
         local matchMod = beast.modelGroup and string.find(string.lower(beast.modelGroup), s, 1, true)
-        local matchZone = beast.zone and string.find(string.lower(beast.zone), s, 1, true)
-        local matchFam = fam.name and string.find(string.lower(fam.name), s, 1, true)
-        local matchSkill = fam.familySkill and string.find(string.lower(fam.familySkill), s, 1, true)
+        local matchZone = (beast.zone and string.find(string.lower(beast.zone), s, 1, true))
+            or (beast.zoneEN and string.find(string.lower(beast.zoneEN), s, 1, true))
+        local matchFam = (fam.name and string.find(string.lower(fam.name), s, 1, true))
+            or (fam.nameEN and string.find(string.lower(fam.nameEN), s, 1, true))
+        local matchSkill = (fam.familySkill and string.find(string.lower(fam.familySkill), s, 1, true))
+            or (fam.familySkillEN and string.find(string.lower(fam.familySkillEN), s, 1, true))
         if not (matchName or matchSub or matchRuMod or matchMod or matchZone or matchFam or matchSkill) then
             local matchExtra = false
             if beast.tomes and #beast.tomes > 0 then
@@ -1442,9 +1683,12 @@ local function BeastMatchesFilters(beast)
                     local tome = addon.TamingTomes and addon.TamingTomes[tKey]
                     if tome then
                         if (tome.name and string.find(string.lower(tome.name), s, 1, true))
+                            or (tome.enName and string.find(string.lower(tome.enName), s, 1, true))
                             or (tome.categoryName and string.find(string.lower(tome.categoryName), s, 1, true))
+                            or (tome.categoryNameEN and string.find(string.lower(tome.categoryNameEN), s, 1, true))
                             or (tome.searchKeywords and string.find(string.lower(tome.searchKeywords), s, 1, true))
                             or (tome.source and string.find(string.lower(tome.source), s, 1, true))
+                            or (tome.sourceEN and string.find(string.lower(tome.sourceEN), s, 1, true))
                         then
                             matchExtra = true
                             break
@@ -1454,7 +1698,9 @@ local function BeastMatchesFilters(beast)
             end
             if not matchExtra and beast.npcs then
                 for _, n in ipairs(beast.npcs) do
-                    if n.name and string.find(string.lower(n.name), s, 1, true) then
+                    if (n.name and string.find(string.lower(n.name), s, 1, true))
+                        or (n.nameEN and string.find(string.lower(n.nameEN), s, 1, true))
+                    then
                         matchExtra = true
                         break
                     end
@@ -1470,14 +1716,16 @@ end
 function addon:RefreshSideDock()
     if not ui.sideDock or not ui.sideDock:IsShown() then return end
 
+    local isEN = self:IsEnglish()
+
     -- Режим вкладки «Фолианты (11)» — подробный гайд и маршрут в стиле MountCollector!
     if ui.viewMode == "TOMES" then
         if ui.dockTitle then
-            ui.dockTitle:SetText(ICON_BOOK .. " |cffffd100Досье фолианта|r")
+            ui.dockTitle:SetText(ICON_BOOK .. self:L("DOCK_TITLE_TOME"))
         end
         local tome = ui.selectedTome
         if not tome then
-            ui.dockBeastName:SetText("Выбери фолиант в сетке")
+            ui.dockBeastName:SetText(isEN and "Select a tome in the grid" or "Выбери фолиант в сетке")
             ui.dockSubTitle:SetText("")
             ui.detailsFS:SetText("")
             return
@@ -1485,73 +1733,84 @@ function addon:RefreshSideDock()
 
         ApplyBeastToModel(ui.bigModel, tome, 0.45)
 
-        ui.dockBeastName:SetText(tome.name)
-        ui.dockSubTitle:SetText((tome.enName and (tome.enName .. " • ") or "") .. (tome.categoryName or ""))
+        local tName = self:GetTomeName(tome)
+        local tCat = self:GetTomeCategoryName(tome)
+        ui.dockBeastName:SetText(tName)
+        if isEN then
+            ui.dockSubTitle:SetText(tCat)
+        else
+            ui.dockSubTitle:SetText((tome.enName and (tome.enName .. " • ") or "") .. tCat)
+        end
 
         local learned = self:IsTomeLearned(tome.id)
         if learned then
-            ui.dockStatusBadge:SetText(ICON_READY .. " |cff00ff96Навык изучен|r")
-            ui.btnToggleCol:SetText("Снять отметку")
+            ui.dockStatusBadge:SetText(ICON_READY .. self:L("DOCK_STATUS_LEARNED"))
+            ui.btnToggleCol:SetText(self:L("BTN_UNMARK"))
         else
-            ui.dockStatusBadge:SetText(ICON_STAR .. " |cffff8800Ещё не изучен|r")
-            ui.btnToggleCol:SetText(ICON_READY .. " Отметить изуч.")
+            ui.dockStatusBadge:SetText(ICON_STAR .. self:L("DOCK_STATUS_UNLEARNED"))
+            ui.btnToggleCol:SetText(ICON_READY .. self:L("BTN_MARK_LEARNED"))
         end
 
         if tome.accountWide then
-            ui.dockRarityBadge:SetText("|cff00ccffНа весь аккаунт|r")
+            ui.dockRarityBadge:SetText(self:L("DOCK_SCOPE_ACCOUNT"))
             ui.dockRarityBadge:SetTextColor(0.2, 0.85, 1.0)
         else
-            ui.dockRarityBadge:SetText("|cffffaa00На персонажа|r")
+            ui.dockRarityBadge:SetText(self:L("DOCK_SCOPE_CHAR"))
             ui.dockRarityBadge:SetTextColor(1.0, 0.72, 0.2)
         end
 
-        ui.btnNavigate:SetText(ICON_PIN .. " Проложить маршрут за книгой (TomTom + Карта)")
+        ui.btnNavigate:SetText(ICON_PIN .. self:L("BTN_NAV_TOME"))
         if ui.btnWowhead then
-            ui.btnWowhead:SetText(string.format("Звери (%d)", tome.beastCount or 0))
+            ui.btnWowhead:SetText(self:L("BTN_BEASTS_COUNT_FMT", tome.beastCount or 0))
         end
         if ui.btnPetopia then
             ui.btnPetopia:SetText("Wowhead")
         end
 
         local lines = {}
-        table.insert(lines, string.format("%s |cffffd100Что открывает:|r |cff66ff99%s|r", ICON_BOOK, tome.categoryName or tome.name))
-        table.insert(lines, string.format("   • |cffffcc00Моделей в нашей базе:|r |cffffffff%d|r (кнопка «Звери (%d)» внизу покажет их все!)", tome.beastCount or 0, tome.beastCount or 0))
+        table.insert(lines, self:L("TOME_UNLOCKS_FMT", ICON_BOOK, tCat ~= "" and tCat or tName))
+        table.insert(lines, self:L("TOME_MODELS_COUNT_FMT", tome.beastCount or 0, tome.beastCount or 0))
         if tome.accountWide then
-            table.insert(lines, "   • |cffffcc00Разблокировка:|r |cff00ccffНа весь аккаунт (Отряд)|r — достаточно получить один раз!")
+            table.insert(lines, self:L("TOME_SCOPE_ACCT_LINE"))
         else
-            table.insert(lines, "   • |cffffcc00Разблокировка:|r |cffffaa00Только на текущего охотника|r (альтам нужно получать отдельно).")
+            table.insert(lines, self:L("TOME_SCOPE_CHAR_LINE"))
         end
-        if tome.autoRaceText then
-            table.insert(lines, "   • |cffffcc00Умеют с рождения без книги:|r |cff00ff96" .. tome.autoRaceText .. "|r")
+        local tAutoRace = self:GetTomeAutoRaceText(tome)
+        if tAutoRace then
+            table.insert(lines, self:L("TOME_INNATE_RACE_FMT", tAutoRace))
         end
-        if tome.dropRateText then
-            table.insert(lines, "   • |cffffcc00Шанс выпадения:|r |cff00ccff" .. tome.dropRateText .. "|r")
+        local tDropRate = self:GetTomeDropRateText(tome)
+        if tDropRate then
+            table.insert(lines, self:L("TOME_DROP_RATE_FMT", tDropRate))
         end
-        if tome.expectedKillsText then
-            table.insert(lines, "   • |cffffcc00Сколько бить (в среднем):|r |cffffffff" .. tome.expectedKillsText .. "|r")
+        local tExpKills = self:GetTomeExpectedKillsText(tome)
+        if tExpKills then
+            table.insert(lines, self:L("TOME_EXPECTED_KILLS_FMT", tExpKills))
         end
         if tome.isDrop then
             local tries, luckPct = self:GetTomeAttempts(tome.id)
             if luckPct and luckPct > 0 then
-                table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r |cff88ff88(накопленная удача: %.1f%%)|r", tries, luckPct))
+                table.insert(lines, self:L("TOME_TRIES_LUCK_FMT", tries, luckPct))
             else
-                table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r", tries))
+                table.insert(lines, self:L("TOME_TRIES_SIMPLE_FMT", tries))
             end
         end
 
-        if tome.howToObtain then
+        local tHowTo = self:GetTomeHowTo(tome)
+        if tHowTo then
             table.insert(lines, " ")
-            table.insert(lines, ICON_STAR .. " |cffffd100Где и как достать (подробно):|r")
-            table.insert(lines, "|cffffffff" .. tome.howToObtain .. "|r")
+            table.insert(lines, ICON_STAR .. self:L("TOME_HOW_TO_HEADER"))
+            table.insert(lines, "|cffffffff" .. tHowTo .. "|r")
         end
 
         table.insert(lines, " ")
-        table.insert(lines, ICON_PIN .. " |cffffd100Локация и точки маршрута:|r")
-        table.insert(lines, string.format("   • |cff00ccffЗона:|r |cffffffff%s|r", tome.zone or "Неизвестно"))
+        table.insert(lines, ICON_PIN .. self:L("TOME_LOCATION_HEADER"))
+        table.insert(lines, self:L("TOME_ZONE_LINE_FMT", self:GetTomeZone(tome)))
         if tome.coords and #tome.coords > 0 then
             for i, c in ipairs(tome.coords) do
-                local notePart = c.note and (" — " .. c.note) or ""
-                table.insert(lines, string.format("   • |cffffd100Точка %d:|r |cff00ff96%.1f, %.1f|r%s", i, c.x, c.y, notePart))
+                local cNote = self:GetCoordNote(c)
+                local notePart = cNote and (" — " .. cNote) or ""
+                table.insert(lines, self:L("TOME_POINT_LINE_FMT", i, c.x, c.y, notePart))
             end
         end
 
@@ -1564,9 +1823,9 @@ function addon:RefreshSideDock()
     end
 
     if ui.dockTitle then
-        ui.dockTitle:SetText(ICON_PAW .. " |cffffd100Досье питомца|r")
+        ui.dockTitle:SetText(ICON_PAW .. self:L("DOCK_TITLE_BEAST"))
     end
-    ui.btnNavigate:SetText(ICON_PIN .. " Проложить путь к зверю (TomTom + Карта)")
+    ui.btnNavigate:SetText(ICON_PIN .. self:L("BTN_NAV_BEAST"))
     if ui.btnWowhead then
         ui.btnWowhead:SetText("Wowhead")
     end
@@ -1576,7 +1835,7 @@ function addon:RefreshSideDock()
 
     local beast = ui.selectedBeast
     if not beast then
-        ui.dockBeastName:SetText("Выбери зверя в сетке")
+        ui.dockBeastName:SetText(self:L("DOCK_SELECT_BEAST"))
         ui.dockSubTitle:SetText("")
         ui.detailsFS:SetText("")
         return
@@ -1588,32 +1847,34 @@ function addon:RefreshSideDock()
 
     ApplyBeastToModel(ui.bigModel, beast, 0.45)
 
-    ui.dockBeastName:SetText(beast.name)
-    ui.dockSubTitle:SetText(beast.subTitle or (fam and fam.name or ""))
+    ui.dockBeastName:SetText(self:GetBeastName(beast))
+    local subTxt = self:GetBeastSubTitle(beast)
+    ui.dockSubTitle:SetText(subTxt ~= "" and subTxt or (fam and self:GetFamilyName(fam) or ""))
 
     if isCollected then
-        ui.dockStatusBadge:SetText(ICON_READY .. " |cff00ff96" .. (colSource or "В коллекции") .. "|r")
-        ui.btnToggleCol:SetText("Снять отметку")
+        ui.dockStatusBadge:SetText(ICON_READY .. " |cff00ff96" .. (colSource or (isEN and "Collected" or "В коллекции")) .. "|r")
+        ui.btnToggleCol:SetText(self:L("BTN_UNMARK"))
     else
-        ui.dockStatusBadge:SetText(ICON_STAR .. " |cffff8800Ещё не приручён|r")
-        ui.btnToggleCol:SetText(ICON_READY .. " Отметить своим")
+        ui.dockStatusBadge:SetText(ICON_STAR .. self:L("DOCK_STATUS_UNTAMED"))
+        ui.btnToggleCol:SetText(ICON_READY .. self:L("BTN_MARK_COLLECTED"))
     end
 
     local rBadge = RARITY_BADGES[beast.rarity or "COMMON"] or RARITY_BADGES.COMMON
-    ui.dockRarityBadge:SetText(rBadge.text)
+    ui.dockRarityBadge:SetText((isEN and rBadge.textEN) or rBadge.text)
     ui.dockRarityBadge:SetTextColor(unpack(rBadge.color))
 
     local lines = {}
 
     if fam and spec then
-        local exoticStr = fam.exotic and " |cff00ccff(Экзотика — только БМ)|r" or " |cff88ff88(Все 3 спека)|r"
-        table.insert(lines, string.format("%s |cffffd100Семейство:|r |cffffffff%s|r%s", ICON_PAW, fam.name, exoticStr))
-        table.insert(lines, string.format("|T%s:14:14:0:0|t |cffffd100Специализация:|r %s%s|r", tostring(spec.icon or "Interface\\ICONS\\Ability_Hunter_BeastMastery"), spec.color, spec.name))
-        table.insert(lines, string.format("   • |cffffcc00Активно:|r %s — %s", spec.activeName, spec.activeDesc))
-        table.insert(lines, string.format("   • |cffffcc00Пассивно:|r %s (%s)", spec.passiveName, spec.passiveDesc))
-        table.insert(lines, string.format("   • |cff00ff96Умение семейства:|r %s", fam.familySkill or ""))
-        if fam.familyDesc then
-            table.insert(lines, "|cffaaaaaa" .. fam.familyDesc .. "|r")
+        local exoticStr = fam.exotic and self:L("TAG_EXOTIC_FULL") or self:L("TAG_ALL_SPECS_FULL")
+        table.insert(lines, self:L("BEAST_FAMILY_LINE_FMT", ICON_PAW, self:GetFamilyName(fam), exoticStr))
+        table.insert(lines, self:L("BEAST_SPEC_LINE_FMT", tostring(spec.icon or "Interface\\ICONS\\Ability_Hunter_BeastMastery"), spec.color, self:GetSpecName(spec)))
+        table.insert(lines, self:L("BEAST_ACTIVE_LINE_FMT", self:GetSpecActiveName(spec), self:GetSpecActiveDesc(spec)))
+        table.insert(lines, self:L("BEAST_PASSIVE_LINE_FMT", self:GetSpecPassiveName(spec), self:GetSpecPassiveDesc(spec)))
+        table.insert(lines, self:L("BEAST_SKILL_LINE_FMT", self:GetFamilySkill(fam)))
+        local fDesc = self:GetFamilyDesc(fam)
+        if fDesc then
+            table.insert(lines, "|cffaaaaaa" .. fDesc .. "|r")
         end
     end
 
@@ -1622,72 +1883,70 @@ function addon:RefreshSideDock()
         for _, tKey in ipairs(requiredTomes) do
             local learned, tome = self:IsTomeLearned(tKey)
             if tome then
+                local tName = self:GetTomeName(tome)
+                local tCat = self:GetTomeCategoryName(tome)
+                local tDrop = self:GetTomeDropRateText(tome)
+                local tSrc = self:GetTomeSource(tome)
                 table.insert(lines, " ")
-                if tome.categoryName then
-                    table.insert(lines, string.format("%s |cffffd100Особая группа:|r |cff66ff99%s|r", ICON_BOOK, tome.categoryName))
+                if tCat ~= "" then
+                    table.insert(lines, self:L("BEAST_SPECIAL_GROUP_FMT", ICON_BOOK, tCat))
                 end
                 if learned then
-                    table.insert(lines, string.format("   • |cff00ff96Навык изучен:|r %s", tome.name))
-                elseif tome.questID then
-                    table.insert(lines, string.format("   • |cffff5533Требуется предмет/книга:|r |cffffffff%s|r", tome.name))
-                    if tome.dropRateText then
-                        table.insert(lines, "   • |cffffcc00Шанс выпадения:|r |cff00ccff" .. tome.dropRateText .. "|r")
-                    end
-                    if tome.isDrop then
-                        local tries, luckPct = self:GetTomeAttempts(tome.id)
-                        if luckPct and luckPct > 0 then
-                            table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r (удача: %.1f%%)", tries, luckPct))
-                        else
-                            table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r", tries))
-                        end
-                    end
-                    table.insert(lines, "|cffffaa66   Где взять:|r " .. (tome.source or ""))
+                    table.insert(lines, self:L("BEAST_TOME_LEARNED_FMT", tName))
                 else
-                    table.insert(lines, string.format("   • |cffffaa00Требуется предмет/книга:|r |cffffffff%s|r", tome.name))
-                    if tome.dropRateText then
-                        table.insert(lines, "   • |cffffcc00Шанс выпадения:|r |cff00ccff" .. tome.dropRateText .. "|r")
+                    table.insert(lines, self:L(tome.questID and "BEAST_TOME_REQ_RED_FMT" or "BEAST_TOME_REQ_YEL_FMT", tName))
+                    if tDrop then
+                        table.insert(lines, self:L("TOME_DROP_RATE_FMT", tDrop))
                     end
                     if tome.isDrop then
                         local tries, luckPct = self:GetTomeAttempts(tome.id)
                         if luckPct and luckPct > 0 then
-                            table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r (удача: %.1f%%)", tries, luckPct))
+                            table.insert(lines, self:L("TOME_TRIES_LUCK_FMT", tries, luckPct))
                         else
-                            table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r", tries))
+                            table.insert(lines, self:L("TOME_TRIES_SIMPLE_FMT", tries))
                         end
                     end
-                    table.insert(lines, "|cffffaa66   Где взять:|r " .. (tome.source or ""))
+                    if tSrc then
+                        table.insert(lines, self:L("BEAST_WHERE_GET_FMT", tSrc))
+                    end
                 end
             end
         end
     end
 
     table.insert(lines, " ")
-    table.insert(lines, ICON_PIN .. " |cffffd100Где водится и точки поиска:|r")
-    table.insert(lines, string.format("   • |cff00ccffОсновная зона:|r |cffffffff%s|r", beast.zone or "Неизвестно"))
-    if beast.respawn then
-        table.insert(lines, string.format("   • |cff00ccffРеспавн:|r %s", beast.respawn))
+    table.insert(lines, ICON_PIN .. self:L("BEAST_WHERE_HEADER"))
+    table.insert(lines, self:L("BEAST_MAIN_ZONE_FMT", self:GetBeastZone(beast)))
+    local bRespawn = self:GetBeastRespawn(beast)
+    if bRespawn then
+        table.insert(lines, self:L("BEAST_RESPAWN_FMT", bRespawn))
     end
     if beast.coords and #beast.coords > 0 then
         for i, c in ipairs(beast.coords) do
-            local notePart = c.note and (" — " .. c.note) or ""
-            table.insert(lines, string.format("   • |cffffd100Точка %d:|r |cff00ff96%.1f, %.1f|r%s", i, c.x, c.y, notePart))
+            local cNote = self:GetCoordNote(c)
+            local notePart = cNote and (" — " .. cNote) or ""
+            table.insert(lines, self:L("TOME_POINT_LINE_FMT", i, c.x, c.y, notePart))
         end
     end
 
     if beast.npcs and #beast.npcs > 0 then
         table.insert(lines, " ")
-        table.insert(lines, ICON_PAW .. " |cffffd100Мобы с этой моделью (Petopia):|r")
+        table.insert(lines, ICON_PAW .. " " .. self:L("BEAST_NPCS_HEADER_FMT", #beast.npcs))
         for _, n in ipairs(beast.npcs) do
-            local tagStr = (n.tag and n.tag ~= "") and (" |cffffaa00[" .. n.tag .. "]|r") or ""
-            local lvlStr = (n.level and n.level ~= "") and (" |cff888888(ур. " .. n.level .. ")|r") or ""
-            table.insert(lines, string.format("   • |cffffffff%s|r%s%s — |cff00ccff%s|r", n.name or ("NPC #" .. tostring(n.id)), tagStr, lvlStr, n.zone or ""))
+            local nName = (isEN and n.nameEN) or n.name or ("NPC #" .. tostring(n.id))
+            local nTag = (isEN and n.tagEN) or n.tag
+            local nZone = (isEN and n.zoneEN) or n.zone or ""
+            local tagStr = (nTag and nTag ~= "") and (" |cffffaa00[" .. nTag .. "]|r") or ""
+            local lvlStr = (n.level and n.level ~= "") and (" |cff888888(" .. (isEN and "lvl " or "ур. ") .. n.level .. ")|r") or ""
+            table.insert(lines, string.format("   • |cffffffff%s|r%s%s — |cff00ccff%s|r", nName, tagStr, lvlStr, nZone))
         end
     end
 
-    if beast.howTo then
+    local bHowTo = self:GetBeastHowTo(beast)
+    if bHowTo then
         table.insert(lines, " ")
-        table.insert(lines, ICON_STAR .. " |cffffd100Как выследить и приручить:|r")
-        table.insert(lines, "|cffffffff" .. beast.howTo .. "|r")
+        table.insert(lines, ICON_STAR .. self:L("BEAST_HOW_TO_HEADER"))
+        table.insert(lines, "|cffffffff" .. bHowTo .. "|r")
     end
 
     local fullText = table.concat(lines, "\n")
@@ -1700,17 +1959,21 @@ end
 function addon:RefreshUI()
     if not ui.mainFrame or not ui.mainFrame:IsShown() then return end
 
+    local isEN = self:IsEnglish()
     local isTomesMode = (ui.viewMode == "TOMES")
     ui.tabAllModels:SetActiveTab(not isTomesMode and not ui.onlyUncollected)
     ui.tabMissing:SetActiveTab(not isTomesMode and ui.onlyUncollected)
     if ui.tabTomes then
         ui.tabTomes:SetActiveTab(isTomesMode)
     end
+    if ui.langBtn then
+        ui.langBtn:SetText(self:L("LANG_BTN_LABEL"))
+    end
 
-    local activeRoleLabel = "Трейты и абилки [v]"
+    local activeRoleLabel = self:L("FILTER_TRAITS_DEFAULT")
     for _, rf in ipairs(ROLE_FILTERS) do
         if rf.id == ui.selectedRole then
-            activeRoleLabel = (rf.short or rf.label) .. " [v]"
+            activeRoleLabel = GetRoleFilterShort(rf) .. " [v]"
             break
         end
     end
@@ -1721,13 +1984,13 @@ function addon:RefreshUI()
 
     -- Режим вкладки «Фолианты (11)»
     if isTomesMode then
-        ui.winTitle:SetText("|cffffd100Звери охотника — Фолианты и предметы приручения (11)|r")
+        ui.winTitle:SetText("|cffffd100" .. self:L("TITLE_TOMES_TAB") .. "|r")
         ui.portraitIcon:SetTexture("Interface\\ICONS\\INV_Misc_Book_09")
 
         local learnedTomes, totalTomes = self:GetTomeProgress()
         ui.progBar:SetMinMaxValues(0, math.max(1, totalTomes))
         ui.progBar:SetValue(learnedTomes)
-        ui.progText:SetText(string.format("Фолианты: %d / %d", learnedTomes, totalTomes))
+        ui.progText:SetText(self:L("PROGRESS_TOMES_FMT", learnedTomes, totalTomes))
 
         wipe(ui.filteredTomes)
         local s = ui.searchText or ""
@@ -1739,8 +2002,10 @@ function addon:RefreshUI()
                     match = (tome.name and string.find(string.lower(tome.name), s, 1, true))
                         or (tome.enName and string.find(string.lower(tome.enName), s, 1, true))
                         or (tome.categoryName and string.find(string.lower(tome.categoryName), s, 1, true))
+                        or (tome.categoryNameEN and string.find(string.lower(tome.categoryNameEN), s, 1, true))
                         or (tome.searchKeywords and string.find(string.lower(tome.searchKeywords), s, 1, true))
                         or (tome.source and string.find(string.lower(tome.source), s, 1, true))
+                        or (tome.sourceEN and string.find(string.lower(tome.sourceEN), s, 1, true))
                 end
                 if match then
                     table.insert(ui.filteredTomes, tome)
@@ -1750,7 +2015,7 @@ function addon:RefreshUI()
 
         ui.totalPages = 1
         ui.currentPage = 1
-        ui.pageText:SetText("Стр. 1/1")
+        ui.pageText:SetText(self:L("PAGE_FMT", 1, 1))
         ui.prevBtn:SetAlpha(0.4)
         ui.nextBtn:SetAlpha(0.4)
 
@@ -1764,10 +2029,11 @@ function addon:RefreshUI()
             if tome then
                 card.tome = tome
                 card.beast = nil
-                card.nameFS:SetText(tome.shortTitle or tome.name)
+                card.nameFS:SetText(self:GetTomeShortTitle(tome))
 
-                local scopeTag = tome.accountWide and "|cff00ccffАкк|r" or "|cffffaa00Перс|r"
-                card.roleBadge:SetText(string.format("%s |cffffd100(%d)|r", scopeTag, tome.beastCount or 0))
+                card.roleBadge:SetText(tome.accountWide
+                    and self:L("BADGE_ACCT_FMT", tome.beastCount or 0)
+                    or self:L("BADGE_CHAR_FMT", tome.beastCount or 0))
 
                 if self:IsTomeLearned(tome.id) then
                     card.checkBadge:Show()
@@ -1793,16 +2059,16 @@ function addon:RefreshUI()
     local activeSpecDef = (ui.selectedSpec ~= "ALL") and self.PetSpecs[ui.selectedSpec] or nil
     local activeTomeDef = ui.selectedTomeFilter and self.TamingTomes and self.TamingTomes[ui.selectedTomeFilter] or nil
     if activeTomeDef then
-        ui.winTitle:SetText("|cffffd100Звери охотника — " .. activeTomeDef.name .. "|r")
+        ui.winTitle:SetText("|cffffd100" .. self:L("TITLE_PREFIX") .. self:GetTomeName(activeTomeDef) .. "|r")
         ui.portraitIcon:SetTexture("Interface\\ICONS\\INV_Misc_Book_09")
     elseif activeFamDef then
-        ui.winTitle:SetText("|cffffd100Звери охотника — " .. activeFamDef.name .. "|r")
+        ui.winTitle:SetText("|cffffd100" .. self:L("TITLE_PREFIX") .. self:GetFamilyName(activeFamDef) .. "|r")
         ui.portraitIcon:SetTexture(activeFamDef.icon or "Interface\\ICONS\\Ability_Hunter_BeastMastery")
     elseif activeSpecDef then
-        ui.winTitle:SetText("|cffffd100Звери охотника — " .. activeSpecDef.color .. activeSpecDef.name .. "|r |cffffd100(Все семейства)|r")
+        ui.winTitle:SetText("|cffffd100" .. self:L("TITLE_PREFIX") .. activeSpecDef.color .. self:GetSpecName(activeSpecDef) .. "|r |cffffd100(" .. (isEN and "All Families" or "Все семейства") .. ")|r")
         ui.portraitIcon:SetTexture(activeSpecDef.icon or "Interface\\ICONS\\Ability_Hunter_BeastMastery")
     else
-        ui.winTitle:SetText("|cffffd100Звери охотника — Все 61 семейство|r")
+        ui.winTitle:SetText("|cffffd100" .. self:L("TITLE_ALL_FAMILIES") .. "|r")
         ui.portraitIcon:SetTexture("Interface\\ICONS\\Ability_Hunter_BeastMastery")
     end
 
@@ -1824,9 +2090,9 @@ function addon:RefreshUI()
         ui.selectedSpec = "ALL"
         ui.selectedRole = "ALL"
         ui.selectedTomeFilter = nil
-        ui.roleDropdownBtn:SetText("Трейты и абилки [v]")
+        ui.roleDropdownBtn:SetText(self:L("FILTER_TRAITS_DEFAULT"))
         ui.roleDropdownBtn:SetActiveTab(false)
-        ui.winTitle:SetText("|cffffd100Звери охотника — Все 61 семейство|r")
+        ui.winTitle:SetText("|cffffd100" .. self:L("TITLE_ALL_FAMILIES") .. "|r")
         ui.portraitIcon:SetTexture("Interface\\ICONS\\Ability_Hunter_BeastMastery")
         self:RefreshFamilyStrip()
         for _, beast in ipairs(self.Beasts or {}) do
@@ -1839,7 +2105,7 @@ function addon:RefreshUI()
     -- Если выбрано конкретное семейство/спек, с которым несовместим старый фильтр трейта — мягко сбрасываем фильтр трейта
     if #ui.filteredBeasts == 0 and ui.selectedRole ~= "ALL" and ui.searchText == "" and not ui.onlyUncollected then
         ui.selectedRole = "ALL"
-        ui.roleDropdownBtn:SetText("Трейты и абилки [v]")
+        ui.roleDropdownBtn:SetText(self:L("FILTER_TRAITS_DEFAULT"))
         ui.roleDropdownBtn:SetActiveTab(false)
         self:RefreshFamilyStrip()
         for _, beast in ipairs(self.Beasts or {}) do
@@ -1854,7 +2120,7 @@ function addon:RefreshUI()
         ui.currentPage = ui.totalPages
     end
 
-    ui.pageText:SetText(string.format("Стр. %d/%d", ui.currentPage, ui.totalPages))
+    ui.pageText:SetText(self:L("PAGE_FMT", ui.currentPage, ui.totalPages))
     ui.prevBtn:SetAlpha(ui.currentPage > 1 and 1.0 or 0.4)
     ui.nextBtn:SetAlpha(ui.currentPage < ui.totalPages and 1.0 or 0.4)
 
@@ -1869,22 +2135,22 @@ function addon:RefreshUI()
         if beast then
             card.tome = nil
             card.beast = beast
-            card.nameFS:SetText(beast.name)
+            card.nameFS:SetText(self:GetBeastName(beast))
 
             local fam = self.FamilyByID[beast.family]
             local badges = {}
             for _, r in ipairs((fam and fam.roles) or {}) do
-                if r == "BL" then table.insert(badges, "|cffff4d4dБЛ|r")
+                if r == "BL" then table.insert(badges, self:L("BADGE_BL"))
                 elseif r == "MORTAL" then table.insert(badges, "|cffff9900-50%|r")
-                elseif r == "DISPEL" then table.insert(badges, "|cff66ccffДисп|r")
-                elseif r == "TANK" then table.insert(badges, "|cff4da6ffТанк|r")
+                elseif r == "DISPEL" then table.insert(badges, self:L("BADGE_DISPEL"))
+                elseif r == "TANK" then table.insert(badges, self:L("BADGE_TANK"))
                 end
             end
             if fam and fam.exotic then
-                table.insert(badges, 1, "|cffd966ffБМ|r")
+                table.insert(badges, 1, self:L("BADGE_EXOTIC_BM"))
             end
             if beast.tomes and #beast.tomes > 0 then
-                table.insert(badges, "|cffffcc33Фол|r")
+                table.insert(badges, self:L("BADGE_TOME_UNLEARNED"))
             end
             card.roleBadge:SetText(table.concat(badges, " "))
 
@@ -1941,12 +2207,13 @@ function addon:HookCollectionsJournal()
         if self.collectionsHooked or not _G.CollectionsJournal then return end
         self.collectionsHooked = true
 
-        local btn = CreateWardrobeButton(CollectionsJournal, 144, 22, ICON_PAW .. " Звери охотника", true)
+        local btn = CreateWardrobeButton(CollectionsJournal, 144, 22, ICON_PAW .. (addon:IsEnglish() and " Hunter Pets" or " Звери охотника"), true)
         btn:SetPoint("TOPLEFT", CollectionsJournal, "TOPLEFT", 62, -4)
         btn:SetFrameLevel((CollectionsJournal:GetFrameLevel() or 10) + 15)
         btn:SetScript("OnClick", function()
             addon:ToggleMainWindow()
         end)
+        ui.journalBtn = btn
     end
 
     if _G.CollectionsJournal then
@@ -1959,11 +2226,11 @@ function addon:HookCollectionsJournal()
 end
 
 local MINIMAP_ICONS = {
-    { icon = 132164, name = "Приручение зверя (Лапа)" },          -- Ability_Hunter_BeastTaming
-    { icon = 236165, name = "Дух зверя (Призрачный волк)" },      -- Ability_Hunter_AspectOfTheBeast
-    { icon = 132161, name = "Призыв питомца (Охотничий рог)" },   -- Ability_Hunter_BeastCall
-    { icon = 132176, name = "Повелитель зверей" },                -- Ability_Hunter_BeastMastery
-    { icon = 132328, name = "Выслеживание зверей" },              -- Ability_Tracking
+    { icon = 132164, name = "Приручение зверя (Лапа)",        nameEN = "Tame Beast (Paw)" },
+    { icon = 236165, name = "Дух зверя (Призрачный волк)",    nameEN = "Spirit Beast (Ghost Wolf)" },
+    { icon = 132161, name = "Призыв питомца (Охотничий рог)", nameEN = "Call Pet (Hunter Horn)" },
+    { icon = 132176, name = "Повелитель зверей",              nameEN = "Beast Mastery" },
+    { icon = 132328, name = "Выслеживание зверей",            nameEN = "Track Beasts" },
 }
 
 local function PositionRoundMinimapButton(btn, angleDeg)
@@ -2104,14 +2371,15 @@ function addon:SetupRoundMinimapButton()
             GameTooltip:SetOwner(self, "ANCHOR_LEFT")
             local col, tot = addon:GetCollectionProgress("ALL", "ALL")
             local curIconInfo = MINIMAP_ICONS[addon.db.minimap.iconIdx] or MINIMAP_ICONS[1]
-            GameTooltip:AddLine("|cff00ff96Beast|r|cffffaa00Collector|r — Бестиарий Охотника")
-            GameTooltip:AddLine(string.format("Приручено моделей: |cffffd100%d / %d|r (61 семейство)", col, tot), 0.9, 0.9, 0.9)
-            GameTooltip:AddLine("Иконка: |cff88ccff" .. curIconInfo.name .. "|r", 0.75, 0.75, 0.75)
+            local isEN = addon:IsEnglish()
+            GameTooltip:AddLine("|cff00ff96Beast|r|cffffaa00Collector|r — " .. addon:L("MINIMAP_TT_SUBTITLE"))
+            GameTooltip:AddLine(addon:L("MINIMAP_TT_COLLECTED", col, tot), 0.9, 0.9, 0.9)
+            GameTooltip:AddLine((isEN and "Icon: |cff88ccff" or "Иконка: |cff88ccff") .. ((isEN and curIconInfo.nameEN) or curIconInfo.name) .. "|r", 0.75, 0.75, 0.75)
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine("|cffffd100ЛКМ:|r Открыть / закрыть коллекцию 3D-моделей", 0.7, 0.9, 1.0)
-            GameTooltip:AddLine("|cffffd100ПКМ:|r Показать неприручённых зверей", 0.7, 0.9, 1.0)
-            GameTooltip:AddLine("|cffffd100Shift + ПКМ:|r Сменить иконку кнопки", 0.7, 0.9, 1.0)
-            GameTooltip:AddLine("|cffaaaaaaЗажать ЛКМ:|r Перетащить вокруг миникарты", 0.65, 0.65, 0.65)
+            GameTooltip:AddLine(addon:L("MINIMAP_TT_LCLICK"), 0.7, 0.9, 1.0)
+            GameTooltip:AddLine(addon:L("MINIMAP_TT_RCLICK"), 0.7, 0.9, 1.0)
+            GameTooltip:AddLine(isEN and "|cffffd100Shift + RMB:|r Cycle button icon" or "|cffffd100Shift + ПКМ:|r Сменить иконку кнопки", 0.7, 0.9, 1.0)
+            GameTooltip:AddLine(addon:L("MINIMAP_TT_DRAG"), 0.65, 0.65, 0.65)
             GameTooltip:Show()
         end)
 
@@ -2152,10 +2420,10 @@ function addon:InitLDB()
         OnTooltipShow = function(tooltip)
             if not tooltip then return end
             local col, tot = addon:GetCollectionProgress("ALL", "ALL")
-            tooltip:AddLine("|cff00ff96Beast|r|cffffaa00Collector|r — Бестиарий Охотника")
-            tooltip:AddLine(string.format("Приручено моделей: |cffffd100%d / %d|r (61 семейство)", col, tot), 0.9, 0.9, 0.9)
+            tooltip:AddLine("|cff00ff96Beast|r|cffffaa00Collector|r — " .. addon:L("MINIMAP_TT_SUBTITLE"))
+            tooltip:AddLine(addon:L("MINIMAP_TT_COLLECTED", col, tot), 0.9, 0.9, 0.9)
             tooltip:AddLine(" ")
-            tooltip:AddLine("|cffffd100ЛКМ или /bc:|r Открыть коллекцию 3D-моделей зверей", 0.7, 0.9, 1.0)
+            tooltip:AddLine(addon:L("MINIMAP_TT_LCLICK"), 0.7, 0.9, 1.0)
         end,
     })
 end
@@ -2166,13 +2434,29 @@ SlashCmdList["BEASTCOLLECTOR"] = function(msg)
     local cmd = strtrim(string.lower(msg or ""))
     if cmd == "scan" then
         addon:ScanHunterStables()
-        print("|cff00ff96[BeastCollector]|r Стойла и активный питомец просканированы.")
+        print(addon:IsEnglish()
+            and "|cff00ff96[BeastCollector]|r Stables and active pet scanned."
+            or "|cff00ff96[BeastCollector]|r Стойла и активный питомец просканированы.")
+    elseif cmd == "lang" or cmd == "en" or cmd == "ru" then
+        if cmd == "en" and addon.db and addon.db.settings then
+            addon.db.settings.language = "ruRU" -- ToggleLanguage переключит в enUS
+        elseif cmd == "ru" and addon.db and addon.db.settings then
+            addon.db.settings.language = "enUS" -- ToggleLanguage переключит в ruRU
+        elseif cmd == "auto" and addon.db and addon.db.settings then
+            addon.db.settings.language = "AUTO"
+            if addon.ApplyLocaleToStaticUI then addon:ApplyLocaleToStaticUI() end
+            if addon.RefreshUI then addon:RefreshUI() end
+            return
+        end
+        addon:ToggleLanguage()
     elseif cmd == "minimap" or cmd == "mm" then
         if addon.db and addon.db.minimap then
             addon.db.minimap.hide = not addon.db.minimap.hide
             addon:SetupRoundMinimapButton()
-            local state = addon.db.minimap.hide and "скрыта" or "показана"
-            print("|cff00ff96[BeastCollector]|r Круглая кнопка у миникарты " .. state .. ".")
+            local state = addon.db.minimap.hide
+                and (addon:IsEnglish() and "hidden" or "скрыта")
+                or (addon:IsEnglish() and "shown" or "показана")
+            print("|cff00ff96[BeastCollector]|r " .. (addon:IsEnglish() and ("Minimap button is now " .. state .. ".") or ("Круглая кнопка у миникарты " .. state .. ".")))
         end
     else
         addon:ToggleMainWindow()

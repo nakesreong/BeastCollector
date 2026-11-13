@@ -30,6 +30,7 @@ It provides a complete visual catalog of all **61 Hunter Pet Families** and **2,
 ## Slash Commands
 
 - `/bc` or `/beastcollector` — Toggle the main **BeastCollector** window.
+- `/bc lang` (or `/bc en` / `/bc ru`) — Instantly switch UI and database language between **English (`enUS`)** and **Russian (`ruRU`)** without `/reload` (or click the **`[EN]` / `[RU]`** button in the top-right header).
 - `/bc scan` — Force a manual scan of your active Hunter pet and Stable slots.
 - `/bc minimap` — Toggle the minimap button (`LibDBIcon-1.0`).
 
