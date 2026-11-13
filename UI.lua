@@ -930,6 +930,20 @@ function addon:InitUI()
                 else
                     GameTooltip:AddLine(ICON_STAR .. " |cffff8800Ещё не изучен|r", 1.0, 0.55, 0.2)
                 end
+                if self.tome.dropRateText then
+                    GameTooltip:AddLine("|cffffd100Шанс выпадения:|r |cff00ccff" .. self.tome.dropRateText .. "|r", 0.9, 0.9, 0.9, true)
+                end
+                if self.tome.expectedKillsText then
+                    GameTooltip:AddLine("|cffffd100Сколько бить:|r |cffffffff" .. self.tome.expectedKillsText .. "|r", 0.85, 0.85, 0.9, true)
+                end
+                if self.tome.isDrop then
+                    local tries, luckPct = addon:GetTomeAttempts(self.tome.id)
+                    if luckPct and luckPct > 0 then
+                        GameTooltip:AddLine(string.format("|cffffd100Твои траи (убито):|r |cffffcc00%d|r |cffaaaaaa(накопленная удача: %.1f%%)|r", tries, luckPct))
+                    else
+                        GameTooltip:AddLine(string.format("|cffffd100Твои траи (убито):|r |cffffcc00%d|r", tries))
+                    end
+                end
                 if self.tome.source then
                     GameTooltip:AddLine(" ")
                     GameTooltip:AddLine("|cffffd100Где достать:|r " .. self.tome.source, 0.92, 0.90, 0.85, true)
@@ -1510,6 +1524,20 @@ function addon:RefreshSideDock()
         if tome.autoRaceText then
             table.insert(lines, "   • |cffffcc00Умеют с рождения без книги:|r |cff00ff96" .. tome.autoRaceText .. "|r")
         end
+        if tome.dropRateText then
+            table.insert(lines, "   • |cffffcc00Шанс выпадения:|r |cff00ccff" .. tome.dropRateText .. "|r")
+        end
+        if tome.expectedKillsText then
+            table.insert(lines, "   • |cffffcc00Сколько бить (в среднем):|r |cffffffff" .. tome.expectedKillsText .. "|r")
+        end
+        if tome.isDrop then
+            local tries, luckPct = self:GetTomeAttempts(tome.id)
+            if luckPct and luckPct > 0 then
+                table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r |cff88ff88(накопленная удача: %.1f%%)|r", tries, luckPct))
+            else
+                table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r", tries))
+            end
+        end
 
         if tome.howToObtain then
             table.insert(lines, " ")
@@ -1602,9 +1630,31 @@ function addon:RefreshSideDock()
                     table.insert(lines, string.format("   • |cff00ff96Навык изучен:|r %s", tome.name))
                 elseif tome.questID then
                     table.insert(lines, string.format("   • |cffff5533Требуется предмет/книга:|r |cffffffff%s|r", tome.name))
+                    if tome.dropRateText then
+                        table.insert(lines, "   • |cffffcc00Шанс выпадения:|r |cff00ccff" .. tome.dropRateText .. "|r")
+                    end
+                    if tome.isDrop then
+                        local tries, luckPct = self:GetTomeAttempts(tome.id)
+                        if luckPct and luckPct > 0 then
+                            table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r (удача: %.1f%%)", tries, luckPct))
+                        else
+                            table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r", tries))
+                        end
+                    end
                     table.insert(lines, "|cffffaa66   Где взять:|r " .. (tome.source or ""))
                 else
                     table.insert(lines, string.format("   • |cffffaa00Требуется предмет/книга:|r |cffffffff%s|r", tome.name))
+                    if tome.dropRateText then
+                        table.insert(lines, "   • |cffffcc00Шанс выпадения:|r |cff00ccff" .. tome.dropRateText .. "|r")
+                    end
+                    if tome.isDrop then
+                        local tries, luckPct = self:GetTomeAttempts(tome.id)
+                        if luckPct and luckPct > 0 then
+                            table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r (удача: %.1f%%)", tries, luckPct))
+                        else
+                            table.insert(lines, string.format("   • |cffffcc00Твои траи (убито):|r |cffffcc00%d|r", tries))
+                        end
+                    end
                     table.insert(lines, "|cffffaa66   Где взять:|r " .. (tome.source or ""))
                 end
             end

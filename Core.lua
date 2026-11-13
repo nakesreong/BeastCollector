@@ -24,6 +24,9 @@ addon.FamilyByID = {}
 addon.BeastByID = {}
 addon.BeastByNpcID = {}
 addon.BeastByDisplayID = {}
+addon.TomeByDropNpcID = {}
+addon.TomeByEncounterID = {}
+addon.LootedCorpseGUIDs = {}
 
 function addon:GetBeastTomes(beast)
     local res = {}
@@ -73,10 +76,20 @@ function addon:BuildIndices()
     wipe(self.BeastByID)
     wipe(self.BeastByNpcID)
     wipe(self.BeastByDisplayID)
+    wipe(self.TomeByDropNpcID)
+    wipe(self.TomeByEncounterID)
 
     if self.TamingTomes then
-        for _, tome in pairs(self.TamingTomes) do
+        for tKey, tome in pairs(self.TamingTomes) do
             tome.beastCount = 0
+            if tome.dropNpcIDs then
+                for _, dNpcID in ipairs(tome.dropNpcIDs) do
+                    self.TomeByDropNpcID[dNpcID] = tKey
+                end
+            end
+            if tome.dropEncounterID then
+                self.TomeByEncounterID[tome.dropEncounterID] = tKey
+            end
         end
     end
 
@@ -131,6 +144,7 @@ function addon:InitDB()
     db.stabledByName = db.stabledByName or {}
     db.manualCollected = db.manualCollected or {}
     db.manualTomes = db.manualTomes or {}
+    db.tomeAttempts = db.tomeAttempts or {}
     -- Аня уже выбила и изучила «Испытания охотника на флорафавнов» в Харандаре:
     if db.manualTomes["FLORAFAUN"] == nil then
         db.manualTomes["FLORAFAUN"] = true
@@ -279,6 +293,104 @@ function addon:GetTomeProgress()
         end
     end
     return learnedCount, totalCount
+end
+
+-- Возвращает количество траев (убийств мобов/боссов) на выбиваемый фолиант и накопленную вероятность (%)
+function addon:GetTomeAttempts(tomeKey)
+    if not tomeKey or not self.db or not self.db.tomeAttempts then return 0, 0 end
+    local rec = self.db.tomeAttempts[tomeKey]
+    local tries = (type(rec) == "table" and (rec.total or 0)) or (tonumber(rec) or 0)
+    local tome = self.TamingTomes and self.TamingTomes[tomeKey]
+    local chance = (tome and tome.dropChance and tome.dropChance > 0) and tome.dropChance or 20
+    local luckPct = 0
+    if tries > 0 then
+        if chance <= 1 then
+            luckPct = 100
+        else
+            luckPct = (1 - math.pow(1 - (1 / chance), tries)) * 100
+        end
+    end
+    return tries, luckPct
+end
+
+function addon:RecordTomeAttempt(tomeKey, mobName, uniqueCorpseKey)
+    if not tomeKey or not self.db then return end
+    local tome = self.TamingTomes and self.TamingTomes[tomeKey]
+    if not tome or not tome.isDrop then return end
+
+    if uniqueCorpseKey then
+        if self.LootedCorpseGUIDs[uniqueCorpseKey] then return end
+        self.LootedCorpseGUIDs[uniqueCorpseKey] = true
+    end
+
+    self.db.tomeAttempts = self.db.tomeAttempts or {}
+    local rec = self.db.tomeAttempts[tomeKey]
+    if type(rec) ~= "table" then
+        rec = { total = tonumber(rec) or 0 }
+    end
+    rec.total = (rec.total or 0) + 1
+    rec.lastKill = time()
+    self.db.tomeAttempts[tomeKey] = rec
+
+    local tries, luckPct = self:GetTomeAttempts(tomeKey)
+    local chance = tome.dropChance or 20
+    print(string.format(
+        "|cff00ff96[BeastCollector Трай #%d]|r |cffffd100%s|r (%s) — шанс дропа: |cff00ccff%s|r • накопленная удача: |cffffaa00%.1f%%|r",
+        tries,
+        tome.name,
+        mobName or tome.shortTitle or "Моб",
+        tome.dropRateText or string.format("1 из %d", chance),
+        luckPct
+    ))
+
+    if self.RefreshUI then
+        self:RefreshUI()
+    end
+end
+
+function addon:HandleLootReadyForTomes()
+    if not _G.GetNumLootItems or not _G.GetLootSourceInfo then return end
+    local numItems = GetNumLootItems()
+    local seenCorpses = {}
+
+    for slot = 1, numItems do
+        local sources = { GetLootSourceInfo(slot) }
+        for i = 1, #sources, 2 do
+            local guid = sources[i]
+            if SafeNotSecret(guid) and type(guid) == "string" and not seenCorpses[guid] then
+                seenCorpses[guid] = true
+                local unitType, _, _, _, _, npcIDStr = strsplit("-", guid)
+                if unitType == "Creature" or unitType == "Vehicle" then
+                    local npcID = tonumber(npcIDStr)
+                    if npcID then
+                        local tKey = self.TomeByDropNpcID and self.TomeByDropNpcID[npcID]
+                        if not tKey then
+                            -- Для Костоплета (UNDEAD) считаем лут элитных мобов в Малдраксусе / Чумопаде, если книга ещё не изучена
+                            local curMap = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+                            local undeadTome = self.TamingTomes and self.TamingTomes.UNDEAD
+                            if curMap and undeadTome and undeadTome.dropZoneMapIDs and undeadTome.dropZoneMapIDs[curMap] and not self:IsTomeLearned("UNDEAD") then
+                                tKey = "UNDEAD"
+                            end
+                        end
+                        if tKey and not self:IsTomeLearned(tKey) then
+                            local tName = UnitName("target")
+                            local mobLabel = (SafeNotSecret(tName) and tName) or ("NPC #" .. tostring(npcID))
+                            self:RecordTomeAttempt(tKey, mobLabel, guid)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+function addon:HandleEncounterEndForTomes(encounterID, encounterName, success)
+    if success ~= 1 then return end
+    local tKey = self.TomeByEncounterID and self.TomeByEncounterID[encounterID]
+    if tKey and not self:IsTomeLearned(tKey) then
+        local lockKey = "ENC_" .. tostring(encounterID) .. "_" .. tostring(math.floor(GetTime() / 30))
+        self:RecordTomeAttempt(tKey, (SafeNotSecret(encounterName) and encounterName) or "Босс", lockKey)
+    end
 end
 
 -- ============================================================================
@@ -1122,6 +1234,27 @@ function addon:InitTooltips()
         local npcID = tonumber(npcIDStr)
         if not npcID then return end
 
+        -- Если этот NPC (например, Зандаларский диномант 69795 или Охотник Петрус 167501) дропает фолиант охотника:
+        local dropTomeKey = self.TomeByDropNpcID and self.TomeByDropNpcID[npcID]
+        if dropTomeKey and self.TamingTomes and self.TamingTomes[dropTomeKey] then
+            local isLearned, tDef = self:IsTomeLearned(dropTomeKey)
+            local tries, luckPct = self:GetTomeAttempts(dropTomeKey)
+            tooltip:AddLine(" ")
+            tooltip:AddLine("|TInterface\\ICONS\\INV_Misc_Book_09:14:14:0:0|t |cff00ff96BeastCollector Фолиант:|r |cffffd100" .. tDef.name .. "|r")
+            if tDef.dropRateText then
+                tooltip:AddLine("   |cffffd100Шанс выпадения:|r " .. tDef.dropRateText, 0.9, 0.9, 0.9, true)
+            end
+            if tDef.expectedKillsText then
+                tooltip:AddLine("   |cff00ccffОжидание:|r " .. tDef.expectedKillsText, 0.85, 0.9, 1.0, true)
+            end
+            tooltip:AddLine(string.format("   |cffffaa00Твои траи (убито):|r %d (накопленная удача: %.1f%%)", tries, luckPct), 1, 0.85, 0.5, true)
+            if isLearned then
+                tooltip:AddLine("   |TInterface\\RaidFrame\\ReadyCheck-Ready:14:14:0:0|t |cff00ff96Этот фолиант уже изучен!|r")
+            else
+                tooltip:AddLine("   |TInterface\\COMMON\\ReputationStar:14:14:0:0:32:32:0:16:0:16|t |cffff8800Ещё не изучен — убей и залутай!|r")
+            end
+        end
+
         local beast = self.BeastByNpcID[npcID]
         if not beast then return end
 
@@ -1271,8 +1404,10 @@ eventFrame:RegisterEvent("ZONE_CHANGED")
 eventFrame:RegisterEvent("PET_STABLE_SHOW")
 eventFrame:RegisterEvent("PET_STABLE_UPDATE")
 eventFrame:RegisterEvent("UNIT_PET")
+eventFrame:RegisterEvent("LOOT_READY")
+eventFrame:RegisterEvent("ENCOUNTER_END")
 
-eventFrame:SetScript("OnEvent", function(_, event, arg1)
+eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4, arg5)
     if event == "ADDON_LOADED" and arg1 == addonName then
         addon:InitDB()
         addon:BuildIndices()
@@ -1280,6 +1415,10 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         if addon.InitUI then
             addon:InitUI()
         end
+    elseif event == "LOOT_READY" then
+        addon:HandleLootReadyForTomes()
+    elseif event == "ENCOUNTER_END" then
+        addon:HandleEncounterEndForTomes(arg1, arg2, arg5)
     elseif event == "PLAYER_ENTERING_WORLD" or event == "PET_STABLE_SHOW" or event == "PET_STABLE_UPDATE" then
         if event == "PLAYER_ENTERING_WORLD" and addon.SetupRoundMinimapButton then
             addon:SetupRoundMinimapButton()
