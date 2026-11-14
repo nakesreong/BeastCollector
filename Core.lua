@@ -1386,6 +1386,13 @@ function addon:InitTooltips()
         else
             tooltip:AddLine("   |TInterface\\COMMON\\ReputationStar:14:14:0:0:32:32:0:16:0:16|t |cffff8800" .. (isEN and "You haven't collected this look in your stables yet!" or "Этой модели ещё нет в твоих стойлах!") .. "|r")
         end
+        if beast.questOnly then
+            tooltip:AddLine(self:L("UNIT_TT_QUEST_ONLY_WARN"), 1.0, 0.35, 0.0, true)
+            if not isCollected then
+                local uName = SafeNotSecret(UnitName("mouseover")) and UnitName("mouseover") or nil
+                self:TriggerQuestBeastAlert(beast, uName, false)
+            end
+        end
     end)
 
     -- 2. Тултип при наведении мышки на точку маршрута (на карте мира и на 3D-ромбике)
@@ -1472,6 +1479,189 @@ function addon:InitTooltips()
 end
 
 -- ============================================================================
+-- ВСПЛЫВАЮЩИЙ БАННЕР-АНОНС КВЕСТОВОГО ЭКСКЛЮЗИВА (В СТИЛЕ MOUNTCOLLECTOR)
+-- Появляется только когда рядом/внутри квеста обнаружен НЕприрученный зверь,
+-- которого можно приручить ТОЛЬКО во время этой квестовой фазы!
+-- ============================================================================
+addon.questAlertCooldowns = {}
+
+function addon:EnsureQuestAlertFrame()
+    if self.alertFrame then return self.alertFrame end
+
+    local f = CreateFrame("Button", "BeastCollectorAlertFrame", UIParent, "BackdropTemplate")
+    f:SetSize(446, 86)
+    f:SetPoint("TOP", UIParent, "TOP", 0, -130)
+    f:SetFrameStrata("HIGH")
+    f:SetToplevel(true)
+    f:SetMovable(true)
+    f:EnableMouse(true)
+    f:RegisterForDrag("LeftButton")
+    f:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    f:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        edgeSize = 1,
+    })
+    f:SetBackdropColor(0.06, 0.05, 0.04, 0.96)
+    f:SetBackdropBorderColor(1.0, 0.50, 0.10, 1.0)
+    f:Hide()
+
+    f:SetScript("OnDragStart", f.StartMoving)
+    f:SetScript("OnDragStop", function(frame)
+        frame:StopMovingOrSizing()
+    end)
+
+    local iconBox = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    iconBox:SetSize(56, 56)
+    iconBox:SetPoint("LEFT", f, "LEFT", 14, 0)
+    iconBox:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        edgeSize = 1,
+    })
+    iconBox:SetBackdropColor(0, 0, 0, 1)
+    iconBox:SetBackdropBorderColor(1.0, 0.55, 0.12, 1.0)
+    f.iconBox = iconBox
+
+    local iconTex = iconBox:CreateTexture(nil, "ARTWORK")
+    iconTex:SetPoint("TOPLEFT", 1, -1)
+    iconTex:SetPoint("BOTTOMRIGHT", -1, 1)
+    iconTex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    iconTex:SetTexture(132164)
+    f.iconTex = iconTex
+
+    local headerFS = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    headerFS:SetPoint("TOPLEFT", iconBox, "TOPRIGHT", 12, -2)
+    headerFS:SetPoint("RIGHT", f, "RIGHT", -28, 0)
+    headerFS:SetJustifyH("LEFT")
+    headerFS:SetWordWrap(false)
+    headerFS:SetTextColor(1.0, 0.52, 0.12, 1.0)
+    f.headerFS = headerFS
+
+    local nameFS = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    nameFS:SetPoint("TOPLEFT", headerFS, "BOTTOMLEFT", 0, -4)
+    nameFS:SetPoint("RIGHT", f, "RIGHT", -28, 0)
+    nameFS:SetJustifyH("LEFT")
+    nameFS:SetWordWrap(false)
+    nameFS:SetTextColor(1.0, 0.88, 0.25, 1.0)
+    f.nameFS = nameFS
+
+    local subFS = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    subFS:SetPoint("TOPLEFT", nameFS, "BOTTOMLEFT", 0, -4)
+    subFS:SetPoint("RIGHT", f, "RIGHT", -14, 0)
+    subFS:SetJustifyH("LEFT")
+    subFS:SetWordWrap(true)
+    subFS:SetTextColor(0.95, 0.82, 0.65, 1.0)
+    f.subFS = subFS
+
+    local closeBtn = CreateFrame("Button", nil, f, "BackdropTemplate")
+    closeBtn:SetSize(20, 20)
+    closeBtn:SetPoint("TOPRIGHT", f, "TOPRIGHT", -6, -6)
+    closeBtn:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        edgeSize = 1,
+    })
+    closeBtn:SetBackdropColor(0.15, 0.10, 0.08, 0.95)
+    closeBtn:SetBackdropBorderColor(0.45, 0.30, 0.18, 1.0)
+    local closeTxt = closeBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    closeTxt:SetPoint("CENTER", 0, 0)
+    closeTxt:SetText("X")
+    closeTxt:SetTextColor(0.9, 0.8, 0.7, 1)
+    closeBtn:SetScript("OnClick", function() f:Hide() end)
+
+    f:SetScript("OnClick", function(frame, button)
+        if button == "RightButton" then
+            frame:Hide()
+            return
+        end
+        if frame.beast and addon.OpenBeastInUI then
+            addon:OpenBeastInUI(frame.beast)
+        end
+    end)
+
+    f:SetScript("OnEnter", function(frame)
+        frame:SetBackdropBorderColor(1.0, 0.82, 0.20, 1.0)
+        GameTooltip:SetOwner(frame, "ANCHOR_BOTTOM")
+        GameTooltip:SetText(addon:L("ALERT_TT_TITLE"), 1, 0.55, 0.15)
+        GameTooltip:AddLine(addon:L("ALERT_TT_DESC"), 0.95, 0.92, 0.85, true)
+        if frame.beast then
+            local howTo = addon:GetBeastHowTo(frame.beast)
+            if howTo and howTo ~= "" then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine(howTo, 1.0, 0.85, 0.45, true)
+            end
+        end
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(addon:L("ALERT_TT_CLICK_HINT"), 0.7, 0.9, 1.0)
+        GameTooltip:Show()
+    end)
+
+    f:SetScript("OnLeave", function(frame)
+        frame:SetBackdropBorderColor(1.0, 0.50, 0.10, 1.0)
+        GameTooltip:Hide()
+    end)
+
+    self.alertFrame = f
+    return f
+end
+
+function addon:TriggerQuestBeastAlert(beast, npcName, forceTest)
+    if not beast then return end
+    if not forceTest and self:IsBeastCollected(beast) then return end
+
+    local now = GetTime and GetTime() or 0
+    local lastTime = self.questAlertCooldowns[beast.id] or 0
+    if not forceTest and (now - lastTime) < 120 then
+        return
+    end
+    self.questAlertCooldowns[beast.id] = now
+
+    local f = self:EnsureQuestAlertFrame()
+    local fam = self.FamilyByID and self.FamilyByID[beast.family]
+    local famName = (fam and self:GetFamilyName(fam)) or ""
+    local bName = (npcName and npcName ~= "") and npcName or self:GetBeastName(beast)
+
+    f.beast = beast
+    f.iconTex:SetTexture((fam and fam.icon) or 132164)
+    f.headerFS:SetText("|TInterface\\GossipFrame\\AvailableQuestIcon:13:13:0:0|t " .. self:L("ALERT_QUEST_HEADER"))
+    f.nameFS:SetText(bName .. (famName ~= "" and (" |cff00ff96[" .. famName .. "]|r") or ""))
+    f.subFS:SetText(self:L("ALERT_QUEST_SUB"))
+    f:Show()
+
+    if PlaySound then
+        pcall(PlaySound, 8959, "Master")
+    end
+    print(self:L("CHAT_QUEST_ALERT_FMT", bName, famName))
+
+    f.alertToken = (f.alertToken or 0) + 1
+    local myToken = f.alertToken
+    C_Timer.After(18.0, function()
+        if f.alertToken == myToken and f:IsShown() then
+            f:Hide()
+        end
+    end)
+end
+
+function addon:CheckUnitForQuestBeast(unit)
+    if not unit or not UnitExists or not UnitExists(unit) then return end
+    local guid = UnitGUID and UnitGUID(unit)
+    if not SafeNotSecret(guid) or type(guid) ~= "string" then return end
+
+    local unitType, _, _, _, _, npcIDStr = strsplit("-", guid)
+    if unitType ~= "Creature" and unitType ~= "Vehicle" and unitType ~= "Vignette" then return end
+    local npcID = tonumber(npcIDStr)
+    if not npcID then return end
+
+    local beast = self.BeastByNpcID and self.BeastByNpcID[npcID]
+    if beast and beast.questOnly and not self:IsBeastCollected(beast) then
+        local uName = UnitName and UnitName(unit)
+        local cleanName = (SafeNotSecret(uName) and type(uName) == "string") and uName or nil
+        self:TriggerQuestBeastAlert(beast, cleanName, false)
+    end
+end
+
+-- ============================================================================
 -- СОБЫТИЯ ЖИЗНЕННОГО ЦИКЛА И ТРЕКЕР ПОРТАЛЬНОГО МАРШРУТА
 -- ============================================================================
 local eventFrame = CreateFrame("Frame")
@@ -1487,6 +1677,8 @@ eventFrame:RegisterEvent("PET_UI_UPDATE")
 eventFrame:RegisterEvent("PET_BAR_UPDATE")
 eventFrame:RegisterEvent("LOOT_READY")
 eventFrame:RegisterEvent("ENCOUNTER_END")
+eventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 
 if _G.hooksecurefunc and _G.PetAbandon then
     pcall(hooksecurefunc, "PetAbandon", function()
@@ -1533,5 +1725,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4, arg5)
     elseif (event == "UNIT_PET" and arg1 == "player") or event == "PET_UI_UPDATE" or event == "PET_BAR_UPDATE" then
         addon:ScanHunterStables(event)
         C_Timer.After(0.35, function() addon:ScanHunterStables(event) end)
+    elseif event == "NAME_PLATE_UNIT_ADDED" and arg1 then
+        addon:CheckUnitForQuestBeast(arg1)
+    elseif event == "PLAYER_TARGET_CHANGED" then
+        addon:CheckUnitForQuestBeast("target")
     end
 end)

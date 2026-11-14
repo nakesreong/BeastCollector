@@ -80,6 +80,7 @@ local Locales = {
         BADGE_EXOTIC_BM         = "|cff00ccffБМ|r",
         BADGE_TOME_LEARNED      = "|cff00ff96Фол|r",
         BADGE_TOME_UNLEARNED    = "|cffffaa00Фол|r",
+        BADGE_QUEST             = "|cffff6600Квест|r",
         BADGE_ACCT_FMT          = "|cff00ccffАкк|r |cffffd100(%d)|r",
         BADGE_CHAR_FMT          = "|cffffaa00Перс|r |cffffd100(%d)|r",
 
@@ -135,6 +136,7 @@ local Locales = {
         BEAST_ACTIVE_LINE_FMT   = "   • |cffffcc00Активно:|r %s — %s",
         BEAST_PASSIVE_LINE_FMT  = "   • |cffffcc00Пассивно:|r %s (%s)",
         BEAST_SKILL_LINE_FMT    = "   • |cff00ff96Умение семейства:|r %s",
+        BEAST_QUEST_ONLY_LINE   = "   • |cffff6600Доступность:|r |cffffd100Эксклюзив квеста — приручи ДО сдачи задания!|r",
         BEAST_SPECIAL_GROUP_FMT = "%s |cffffd100Особая группа:|r |cff66ff99%s|r",
         BEAST_TOME_LEARNED_FMT  = "   • |cff00ff96Навык изучен:|r %s",
         BEAST_TOME_REQ_RED_FMT  = "   • |cffff5533Требуется предмет/книга:|r |cffffffff%s|r",
@@ -188,6 +190,7 @@ local Locales = {
         UNIT_TT_TOME_OK_FMT     = "   %s |cff00ff96%s:|r изучено",
         UNIT_TT_TOME_NEED_FMT   = "   %s |cffff5533Требуется:|r %s",
         UNIT_TT_MISSING_MODEL   = "   %s |cffffaa00Этой модели ещё нет в твоих стойлах!|r",
+        UNIT_TT_QUEST_ONLY_WARN = "   |cffff5500! ЭКСКЛЮЗИВ КВЕСТА: Приручи ДО сдачи задания (потом фаза исчезнет)!|r",
         UNIT_TT_DROPS_TOME_FMT  = "%s |cff00ff96BeastCollector:|r Падает «|cffffd100%s|r»",
         UNIT_TT_DROP_RATE_FMT   = "   • Шанс выпадения: |cff00ccff%s|r",
         UNIT_TT_EXPECTED_FMT    = "   • Сколько бить: |cffffffff%s|r",
@@ -198,6 +201,14 @@ local Locales = {
         WP_TT_STEP_FMT          = "|cff00ccffЭтап %d из %d:|r %s",
         WP_TT_ROUTE_HEADER      = "|cffffd100Маршрут по порталам:|r",
         WP_TT_STEP_CURRENT_FMT  = "   |cffffd100[->] %d. %s (сейчас)|r",
+
+        -- Всплывающий баннер-анонс квестового эксклюзива (как в MountCollector)
+        ALERT_QUEST_HEADER      = "ВНИМАНИЕ: ЭКСКЛЮЗИВ КВЕСТА РЯДОМ!",
+        ALERT_QUEST_SUB         = "Приручи ДО сдачи квеста — после завершения его уже не достать!",
+        ALERT_TT_TITLE          = "|cffff6600BeastCollector — Квестовый эксклюзив|r",
+        ALERT_TT_DESC           = "Этот зверь существует только внутри квестовой фазы или сценария и ещё НЕ собран в твоей коллекции!",
+        ALERT_TT_CLICK_HINT     = "|cff00ff96ЛКМ:|r Открыть досье зверя   |cffaaaaaaПКМ:|r Скрыть баннер",
+        CHAT_QUEST_ALERT_FMT    = "|cffff6600[BeastCollector — Эксклюзив квеста!]|r Рядом |cffffd100%s|r (%s) — этой модели ещё нет в твоих стойлах! Обязательно приручи ДО сдачи квеста!",
     },
 
     enUS = {
@@ -273,6 +284,7 @@ local Locales = {
         BADGE_EXOTIC_BM         = "|cff00ccffBM|r",
         BADGE_TOME_LEARNED      = "|cff00ff96Tome|r",
         BADGE_TOME_UNLEARNED    = "|cffffaa00Tome|r",
+        BADGE_QUEST             = "|cffff6600Quest|r",
         BADGE_ACCT_FMT          = "|cff00ccffAcct|r |cffffd100(%d)|r",
         BADGE_CHAR_FMT          = "|cffffaa00Char|r |cffffd100(%d)|r",
 
@@ -328,6 +340,7 @@ local Locales = {
         BEAST_ACTIVE_LINE_FMT   = "   • |cffffcc00Active:|r %s — %s",
         BEAST_PASSIVE_LINE_FMT  = "   • |cffffcc00Passive:|r %s (%s)",
         BEAST_SKILL_LINE_FMT    = "   • |cff00ff96Family Skill:|r %s",
+        BEAST_QUEST_ONLY_LINE   = "   • |cffff6600Availability:|r |cffffd100Quest-Phase Exclusive — tame BEFORE turning in!|r",
         BEAST_SPECIAL_GROUP_FMT = "%s |cffffd100Special Group:|r |cff66ff99%s|r",
         BEAST_TOME_LEARNED_FMT  = "   • |cff00ff96Skill Learned:|r %s",
         BEAST_TOME_REQ_RED_FMT  = "   • |cffff5533Requires Item / Tome:|r |cffffffff%s|r",
@@ -381,6 +394,7 @@ local Locales = {
         UNIT_TT_TOME_OK_FMT     = "   %s |cff00ff96%s:|r Learned",
         UNIT_TT_TOME_NEED_FMT   = "   %s |cffff5533Requires:|r %s",
         UNIT_TT_MISSING_MODEL   = "   %s |cffffaa00You haven't collected this look in your stables yet!|r",
+        UNIT_TT_QUEST_ONLY_WARN = "   |cffff5500! QUEST EXCLUSIVE: Tame BEFORE turning in the quest (phase locks after)!|r",
         UNIT_TT_DROPS_TOME_FMT  = "%s |cff00ff96BeastCollector:|r Drops '|cffffd100%s|r'",
         UNIT_TT_DROP_RATE_FMT   = "   • Drop Chance: |cff00ccff%s|r",
         UNIT_TT_EXPECTED_FMT    = "   • Expected Kills: |cffffffff%s|r",
@@ -391,6 +405,14 @@ local Locales = {
         WP_TT_STEP_FMT          = "|cff00ccffStep %d of %d:|r %s",
         WP_TT_ROUTE_HEADER      = "|cffffd100Portal Route:|r",
         WP_TT_STEP_CURRENT_FMT  = "   |cffffd100[->] %d. %s (current)|r",
+
+        -- Quest-Exclusive Popup Alert Banner (MountCollector style)
+        ALERT_QUEST_HEADER      = "WARNING: QUEST-EXCLUSIVE BEAST NEARBY!",
+        ALERT_QUEST_SUB         = "Tame BEFORE turning in the quest — unobtainable afterwards!",
+        ALERT_TT_TITLE          = "|cffff6600BeastCollector — Quest-Phase Exclusive|r",
+        ALERT_TT_DESC           = "This beast only exists inside a quest phase or scenario and is NOT in your collection yet!",
+        ALERT_TT_CLICK_HINT     = "|cff00ff96Left-Click:|r Open Beast Dossier   |cffaaaaaaRight-Click:|r Dismiss",
+        CHAT_QUEST_ALERT_FMT    = "|cffff6600[BeastCollector — Quest Exclusive!]|r |cffffd100%s|r (%s) spotted nearby — missing from your stables! Tame BEFORE turning in the quest!",
     },
 }
 
@@ -437,6 +459,15 @@ function addon:ToggleLanguage()
     end
     if self.RefreshUI then
         self:RefreshUI()
+    end
+    if self.alertFrame and self.alertFrame:IsShown() and self.alertFrame.beast then
+        local b = self.alertFrame.beast
+        local fam = self.FamilyByID and self.FamilyByID[b.family]
+        local famName = (fam and self:GetFamilyName(fam)) or ""
+        local bName = self:GetBeastName(b)
+        self.alertFrame.headerFS:SetText("|TInterface\\GossipFrame\\AvailableQuestIcon:13:13:0:0|t " .. self:L("ALERT_QUEST_HEADER"))
+        self.alertFrame.nameFS:SetText(bName .. (famName ~= "" and (" |cff00ff96[" .. famName .. "]|r") or ""))
+        self.alertFrame.subFS:SetText(self:L("ALERT_QUEST_SUB"))
     end
 end
 

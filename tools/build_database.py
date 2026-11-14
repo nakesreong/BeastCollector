@@ -754,6 +754,126 @@ CURATED_BY_NPC = {
         "respawn": "Внутри рейда (4-й босс)",
         "howTo": "Гигантский босс-черепаха с фиолетовыми кристаллами на панцире! Приручается на любой сложности рейда Престол Гроз.",
     },
+    255847: {
+        "name": "Обезумевший от краски шипопасть",
+        "subTitle": "Спектрально-оранжевая шипопасть (Эксклюзив квеста!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 2413,
+        "coords": [(71.8, 53.4, "Тенистая роща (квест с краской)")],
+        "respawn": "Только во время квеста в Тенистой роще (до сдачи задания!)",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Этот ярко-оранжевый спектральный шипопасть существует ТОЛЬКО внутри квестовой фазы в Тенистой роще Харандара (71.8, 53.4). Обязательно приручи его ДО завершения и сдачи квеста (иначе фаза навсегда исчезнет для этого охотника!). Требует изученный фолиант «Испытания охотника на флорафавнов».",
+    },
+    252997: {
+        "name": "Обезумевшая от краски клубнежаба",
+        "subTitle": "Спектрально-оранжевая клубнежаба (Эксклюзив квеста!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 2413,
+        "coords": [(71.6, 55.6, "Тенистая роща (квест с краской)")],
+        "respawn": "Только во время квеста в Тенистой роще (до сдачи задания!)",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Светящаяся оранжевая клубнежаба, доступная ТОЛЬКО во время прохождения квеста с краской в Тенистой роще Харандара (71.6, 55.6). Приручи ДО сдачи квеста! Требует фолиант «Испытания охотника на флорафавнов».",
+    },
+    252998: {
+        "name": "Обезумевший от краски прыгун",
+        "subTitle": "Спектрально-оранжевый пещерный прыгун (Эксклюзив квеста!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 2413,
+        "coords": [(72.4, 53.2, "Тенистая роща (квест с краской)")],
+        "respawn": "Только во время квеста в Тенистой роще (до сдачи задания!)",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Спектрально-оранжевый прыгун, существующий ТОЛЬКО внутри квестовой фазы в Тенистой роще Харандара (72.4, 53.2). Не забудь приручить ДО сдачи задания!",
+    },
+    252994: {
+        "name": "Обезумевший от краски светлячок",
+        "subTitle": "Спектрально-оранжевый светлячок (Эксклюзив квеста!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 2413,
+        "coords": [(72.2, 55.2, "Тенистая роща (квест с краской)")],
+        "respawn": "Только во время квеста в Тенистой роще (до сдачи задания!)",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Уникальный спектрально-оранжевый светлячок из квестовой фазы в Тенистой роще Харандара (72.2, 55.2). Обязательно приручи его ДО сдачи квеста, иначе фаза пропадёт!",
+    },
+    95615: {
+        "name": "Железный боевой рилак",
+        "subTitle": "Чёрный рилак с турбинами (Эксклюзив квестовой фазы!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 543,
+        "coords": [(49.4, 11.6, "Железные доки (квестовая фаза Горгронда)")],
+        "respawn": "Только в квестовой фазе Железных Доков (до сдачи квеста!)",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Единственный в игре чёрный рилак с реактивными турбинами. Существует ТОЛЬКО в открытой квестовой фазе Железных Доков (Горгронд, 49.4, 11.6) во время вступительной цепочки Танаанских джунглей. Приручи ДО завершения квеста!",
+    },
+    146564: {
+        "name": "Гнилостная гончая",
+        "subTitle": "Призрачно-красная гончая (Сценарий брони эльфов крови!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 2424,
+        "coords": [(26.4, 54.8, "Солнечный Колодец (квестовый сценарий)")],
+        "respawn": "Только внутри квестового сценария у Солнечного Колодца",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Уникальная полупрозрачная красная гончая-нежить. Доступна ТОЛЬКО внутри квестового сценария у Солнечного Колодца (26.4, 54.8). Приручи её до выхода из сценария! Требует фолиант «Простой ошейник из кости».",
+    },
+    173855: {
+        "name": "Тень Дамбалы",
+        "subTitle": "Фиолетовая теневая кобра Лоа (Квест Ночного Народца!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 1565,
+        "coords": [(68.4, 65.2, "Сумрачный грот, Арденвельд")],
+        "respawn": "Только во время квеста Бвонсамди в Сумрачном гроте",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Огромная кобра в фиолетовом дыму Тьмы. Появляется ТОЛЬКО во время прохождения квеста кампании Ночного Народца с Бвонсамди в Сумрачном гроте Арденвельда (68.4, 65.2). Приручи ДО убийства и сдачи квеста!",
+    },
+    206180: {
+        "name": "Смертоносный ползун",
+        "subTitle": "Призрачный паук (Квест Приюта маленьких чешуек!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 2112,
+        "coords": [(11.0, 65.8, "Приют маленьких чешуек, Вальдраккен")],
+        "respawn": "Только во время квеста Приюта дракончиков в Вальдраккене",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Единственный источник этой призрачной модели паука. Появляется ТОЛЬКО во время квеста Приюта маленьких чешуек в Вальдраккене (11.0, 65.8). Обязательно приручи ДО завершения задания!",
+    },
+    30423: {
+        "name": "Бестелесный йормунгар",
+        "subTitle": "Призрачно-фиолетовый червь (Квест Грозовой гряды!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 120,
+        "coords": [(56.4, 48.2, "Грозовая гряда (по квесту)")],
+        "respawn": "Только во время квеста в Грозовой гряде",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Уникальный полупрозрачный фиолетовый йормунгар, которого можно приручить ТОЛЬКО во время выполнения квеста в Грозовой гряде. Приручи до сдачи задания!",
+    },
+    29033: {
+        "name": "Дух Аты",
+        "subTitle": "Призрачно-белая гидра (Квест «Очищающая песня»!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 119,
+        "coords": [(37.2, 37.8, "Озеро Горьких Волн, Низина Шолазар")],
+        "respawn": "Призывается колокольчиком по квесту «Очищающая песня»",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Полупрозрачная белая гидра на Озере Горьких Волн (Низина Шолазар). Призывается ТОЛЬКО во время квеста Оракулов «Очищающая песня». Приручи её до сдачи квеста!",
+    },
+    39149: {
+        "name": "Саринекс",
+        "subTitle": "Полосатый фиолетовый силитид (Квест арены Прибамбасска!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 71,
+        "coords": [(51.6, 26.8, "Клетка арены Прибамбасска, Танарис")],
+        "respawn": "Только во время квеста «Купол Грома: Саринекс!»",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Уникальный раскрас силитида-жнеца, который появляется ТОЛЬКО один раз на арене Прибамбасска по квесту «Купол Грома: Саринекс!». Приручи прямо на арене ДО завершения задания!",
+    },
+    263617: {
+        "name": "Тронутый Бездной морской варан",
+        "subTitle": "Морской варан Бездны (Квестовый сценарий Midnight!)",
+        "rarity": "SECRET",
+        "questOnly": True,
+        "mapID": 2405,
+        "coords": [(48.0, 52.0, "Ритуальная площадка: Лагерь Темного Клина")],
+        "respawn": "Только внутри квестового сценария Лагеря Темного Клина",
+        "howTo": "ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Уникальный морской варан Бездны, который встречается ТОЛЬКО внутри квестового сценария «Ритуальная площадка: Лагерь Темного Клина». Приручи ДО завершения сценария!",
+    },
 }
 
 # ============================================================================
@@ -914,6 +1034,18 @@ CURATED_EN_BY_NPC = {
     54322: ("Deth'tilac", "Purple Spider of the Molten Front (Tame below 20% HP)", "4–8 hours", "Immune to taming above 20% HP. Send your pet to soak its 'Deth Strike' (each strike costs Deth'tilac 10% of its own HP) and kite with traps until below 20% HP!"),
     62442: ("Tsulong", "Golden Radiant Cloud Serpent of Day and Night", "Inside Terrace of Endless Spring raid (Boss #2, 100% guaranteed)", "Golden cloud serpent of light from Terrace of Endless Spring! Requires 'How to School Your Serpent' (Exalted with Order of the Cloud Serpent or Pandaren race)."),
     67977: ("Tortos", "Colossal Crystal Turtle of Throne of Thunder", "Inside Throne of Thunder raid (Boss #4)", "Giant crystal-shelled turtle boss! Tameable on any difficulty of Throne of Thunder."),
+    255847: ("Paint-Crazed Thornmaw", "Spectral-Orange Thornmaw (Quest-Phase Exclusive!)", "Only during the Shrouded Grove paint quest (tame BEFORE turning in!)", "WARNING — QUEST-PHASE EXCLUSIVE! This glowing spectral-orange Thornmaw only exists during the paint quest phase in the Shrouded Grove, Harandar (71.8, 53.4). You MUST tame it BEFORE completing and turning in the quest (otherwise the phase disappears permanently!). Requires 'Trials of the Florafaun Hunter' tome."),
+    252997: ("Paint-Crazed Potatoad", "Spectral-Orange Potatoad (Quest-Phase Exclusive!)", "Only during the Shrouded Grove paint quest (tame BEFORE turning in!)", "WARNING — QUEST-PHASE EXCLUSIVE! Glowing spectral-orange Potatoad only available during the paint quest in the Shrouded Grove, Harandar (71.6, 55.6). Tame BEFORE turning in the quest! Requires 'Trials of the Florafaun Hunter' tome."),
+    252998: ("Paint-Crazed Skipper", "Spectral-Orange Skipper (Quest-Phase Exclusive!)", "Only during the Shrouded Grove paint quest (tame BEFORE turning in!)", "WARNING — QUEST-PHASE EXCLUSIVE! Spectral-orange Skipper that only exists inside the quest phase in the Shrouded Grove, Harandar (72.4, 53.2). Tame BEFORE turning in the quest!"),
+    252994: ("Paint-Crazed Firefly", "Spectral-Orange Firefly (Quest-Phase Exclusive!)", "Only during the Shrouded Grove paint quest (tame BEFORE turning in!)", "WARNING — QUEST-PHASE EXCLUSIVE! Unique spectral-orange firefly inside the quest phase in the Shrouded Grove, Harandar (72.2, 55.2). Tame BEFORE turning in the quest!"),
+    95615: ("Iron War Rylak", "Black Rylak w/ Jet Engines (Quest-Phase Exclusive!)", "Only during the Iron Docks 6.2 intro quest phase (before turning in!)", "WARNING — QUEST-PHASE EXCLUSIVE! The only black Rylak with jet engines in the game. Exists ONLY in the non-instanced Iron Docks quest phase in Gorgrond (49.4, 11.6) during the Tanaan Jungle intro questline. Tame BEFORE completing the quest!"),
+    146564: ("Blight Hound", "Ghostly Red Hound (Blood Elf Heritage Armor Scenario!)", "Only inside the Sunwell Heritage quest scenario", "WARNING — QUEST-PHASE EXCLUSIVE! Unique translucent red undead hound available ONLY inside the Shrine of the Eclipse scenario at the Sunwell (26.4, 54.8). Tame before finishing the scenario! Requires 'Simple Tome of Bone-Binding'."),
+    173855: ("Shadow of Dambala", "Purple Shadow Loa Cobra (Night Fae Campaign Quest Exclusive!)", "Only during Bwonsamdi's quest in Dusky Grotto", "WARNING — QUEST-PHASE EXCLUSIVE! Giant cobra shrouded in purple shadow smoke. Spawns ONLY during the Night Fae campaign quest with Bwonsamdi in Dusky Grotto, Ardenweald (68.4, 65.2). Tame BEFORE killing it or turning in the quest!"),
+    206180: ("Death Skitterer", "Spectral Spider (Little Scales Daycare Quest Exclusive!)", "Only during the Little Scales Daycare quest in Valdrakken", "WARNING — QUEST-PHASE EXCLUSIVE! The only source of this spectral barbed spider model. Spawns ONLY during the Little Scales Daycare quest in Valdrakken (11.0, 65.8). Tame BEFORE completing the quest!"),
+    30423: ("Disembodied Jormungar", "Ghostly Purple Worm (Storm Peaks Quest Exclusive!)", "Only during its Storm Peaks quest", "WARNING — QUEST-PHASE EXCLUSIVE! Unique translucent purple jormungar worm tameable ONLY during its quest in The Storm Peaks. Tame before completing the quest!"),
+    29033: ("Spirit of Atha", "Ghostly White Hydra (Quest 'A Cleansing Song' Exclusive!)", "Summoned with chime during quest 'A Cleansing Song'", "WARNING — QUEST-PHASE EXCLUSIVE! Translucent white hydra at Bittertide Lake (Sholazar Basin). Summoned ONLY during the Oracles quest 'A Cleansing Song'. Tame it before turning in the quest!"),
+    39149: ("Sarinexx", "Striped Purple Silithid (Gadgetzan Thunderdrome Quest Exclusive!)", "Only during quest 'Thunderdrome: Sarinexx!'", "WARNING — QUEST-PHASE EXCLUSIVE! Unique striped purple silithid reaver that spawns ONLY once inside the Gadgetzan cage during 'Thunderdrome: Sarinexx!'. Tame it in the arena BEFORE completing the quest!"),
+    263617: ("Void-Touched Snapdragon", "Void-Touched Snapdragon (Midnight Quest Scenario Exclusive!)", "Only inside the Ritual Site: Daggerspine Point scenario", "WARNING — QUEST-PHASE EXCLUSIVE! Unique Void-Touched Snapdragon found ONLY inside the 'Ritual Site: Daggerspine Point' quest scenario. Tame BEFORE finishing the scenario!"),
 }
 
 
@@ -1192,6 +1324,25 @@ def parse_petopia_gallery(uimap_ru, uimap_en, resolve_zone, creature_ru_name, cr
         # Verified 1-to-1 DisplayID only
         verified_disp = creature_disp.get(primary_nid) if npc_look_count[primary_nid] == 1 else None
 
+        quest_zone_re = re.compile(
+            r"quest phase|quest scenario|quest instance|intro quest phase|recruitment phase|"
+            r"hati quest phase|ritual site: daggerspine point|shrine of the eclipse",
+            re.I,
+        )
+        quest_only_nids = {
+            255847, 252997, 252998, 252994, 95615, 146564, 173855, 206180,
+            30423, 29033, 39149, 263617, 60131, 21470, 18707, 21423,
+            17556, 16874, 103563, 138540,
+        }
+        quest_only = bool(
+            (curated and curated.get("questOnly"))
+            or (primary_nid in quest_only_nids)
+            or all(
+                quest_zone_re.search(r["zone_en"]) or "Paint-Crazed" in r["name_en"] or (r["id"] in quest_only_nids)
+                for r in npc_rows
+            )
+        )
+
         # Determine rarity badge
         if curated and "rarity" in curated:
             rarity = curated["rarity"]
@@ -1199,7 +1350,7 @@ def parse_petopia_gallery(uimap_ru, uimap_en, resolve_zone, creature_ru_name, cr
             rarity = "SPIRIT"
         elif any(r["is_boss"] for r in npc_rows):
             rarity = "BOSS"
-        elif any(r["is_spawned"] for r in npc_rows) and len(npc_rows) <= 2:
+        elif quest_only or (any(r["is_spawned"] for r in npc_rows) and len(npc_rows) <= 2):
             rarity = "SECRET"
         elif any(r["is_rare"] for r in npc_rows):
             rarity = "RARE"
@@ -1281,6 +1432,23 @@ def parse_petopia_gallery(uimap_ru, uimap_en, resolve_zone, creature_ru_name, cr
 
         all_nids = [r["id"] for r in npc_rows]
 
+        resp_ru = curated.get("respawn") if curated else None
+        resp_en = curated_en[2] if curated_en else None
+        howto_ru = curated.get("howTo") if curated else None
+        howto_en = curated_en[3] if curated_en else None
+
+        if quest_only and not howto_ru:
+            resp_ru = resp_ru or "Только внутри квестовой фазы / сценария (до сдачи задания!)"
+            resp_en = resp_en or "Only inside quest phase / scenario (tame BEFORE turning in!)"
+            howto_ru = (
+                f"ВНИМАНИЕ — КВЕСТОВЫЙ ЭКСКЛЮЗИВ! Эта расцветка встречается ТОЛЬКО внутри квестовой фазы или сценария "
+                f"(«{best_npc['zone_en']}»). Обязательно приручи этого зверя ДО завершения и сдачи квеста — после выхода из фазы он станет недоступен!"
+            )
+            howto_en = (
+                f"WARNING — QUEST-PHASE EXCLUSIVE! This look only exists inside a quest phase or scenario "
+                f"('{best_npc['zone_en']}'). You MUST tame this beast BEFORE completing and turning in the quest—once the phase ends, it cannot be tamed!"
+            )
+
         beasts.append({
             "id": f"{fam_slug}_{item['look_id']}",
             "lookID": item["look_id"],
@@ -1295,14 +1463,15 @@ def parse_petopia_gallery(uimap_ru, uimap_en, resolve_zone, creature_ru_name, cr
             "npcIDs": all_nids,
             "npcs": top_npcs,
             "rarity": rarity,
+            "questOnly": quest_only,
             "zone": zone_ru,
             "zoneEN": zone_en,
             "mapID": map_id,
             "coords": coords,
-            "respawn": curated.get("respawn") if curated else None,
-            "respawnEN": curated_en[2] if curated_en else None,
-            "howTo": curated.get("howTo") if curated else None,
-            "howToEN": curated_en[3] if curated_en else None,
+            "respawn": resp_ru,
+            "respawnEN": resp_en,
+            "howTo": howto_ru,
+            "howToEN": howto_en,
         })
 
     # Sort beasts within each family so curated / Spirit / Boss / Rare come first, then by model group
@@ -1355,6 +1524,7 @@ def write_outputs(beasts):
 
     for b in beasts:
         disp_part = f", displayID = {b['displayID']}" if b["displayID"] else ""
+        quest_part = ", questOnly = true" if b.get("questOnly") else ""
         map_part = f", mapID = {b['mapID']}" if b["mapID"] else ""
         resp_part = f', respawn = "{lua_escape(b["respawn"])}"' if b["respawn"] else ""
         resp_en_part = f', respawnEN = "{lua_escape(b["respawnEN"])}"' if b.get("respawnEN") else ""
@@ -1382,7 +1552,7 @@ def write_outputs(beasts):
             f'family = "{b["family"]}", modelGroup = "{lua_escape(b["modelGroup"])}", '
             f'name = "{lua_escape(b["name"])}", nameEN = "{lua_escape(b["nameEN"])}", '
             f'subTitle = "{lua_escape(b["subTitle"])}", subTitleEN = "{lua_escape(b["subTitleEN"])}", '
-            f'npcID = {b["npcID"]}{disp_part}, rarity = "{b["rarity"]}", '
+            f'npcID = {b["npcID"]}{disp_part}, rarity = "{b["rarity"]}"{quest_part}, '
             f'zone = "{lua_escape(b["zone"])}", zoneEN = "{lua_escape(b["zoneEN"])}"{map_part}, npcIDs = {{{nids_str}}}'
             f'{coords_part}{npcs_part}{resp_part}{resp_en_part}{howto_part}{howto_en_part} }},'
         )

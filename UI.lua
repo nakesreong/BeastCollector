@@ -433,6 +433,15 @@ local ROLE_FILTERS = {
         desc = "Показать только рарников, секретных питомцев, боссов подземелий и Духов зверя.",
         descEN = "Show only rare spawns, secret pets, dungeon/raid bosses, and Spirit Beasts.",
     },
+    {
+        id = "QUEST_ONLY",
+        short = "|TInterface\\GossipFrame\\AvailableQuestIcon:13:13:0:0|t Эксклюзивы квестов",
+        shortEN = "|TInterface\\GossipFrame\\AvailableQuestIcon:13:13:0:0|t Quest Exclusives",
+        label = "|TInterface\\GossipFrame\\AvailableQuestIcon:14:14:0:0|t Эксклюзивы квестов (Приручить до сдачи!)",
+        labelEN = "|TInterface\\GossipFrame\\AvailableQuestIcon:14:14:0:0|t Quest-Phase Exclusives (Tame before turn-in!)",
+        desc = "Уникальные модели зверей, которые существуют ТОЛЬКО внутри квестовой фазы или сценария (после сдачи квеста приручить их уже нельзя!).",
+        descEN = "Unique beast looks that only exist inside a quest phase or scenario and become unobtainable once the quest is turned in!",
+    },
 }
 
 local function GetRoleFilterShort(rf)
@@ -1156,6 +1165,9 @@ function addon:InitUI()
             if bZone ~= "" then
                 GameTooltip:AddLine(addon:L("TT_CARD_ZONE_FMT", bZone), 0.9, 0.9, 0.9)
             end
+            if self.beast.questOnly then
+                GameTooltip:AddLine(addon:L("UNIT_TT_QUEST_ONLY_WARN"), 1.0, 0.4, 0.0, true)
+            end
             GameTooltip:AddLine(" ")
             GameTooltip:AddLine(addon:L("TT_CARD_BEAST_HELP"), 0.7, 0.9, 1.0)
             GameTooltip:Show()
@@ -1620,6 +1632,8 @@ local function BeastMatchesRoleFilter(beast, fam, roleID)
     elseif roleID == "RARE_ONLY" then
         local r = beast.rarity
         return (r == "SPIRIT" or r == "SECRET" or r == "RARE" or r == "BOSS")
+    elseif roleID == "QUEST_ONLY" then
+        return beast.questOnly == true
     end
 
     return FamilyHasRole(fam, roleID)
@@ -1872,6 +1886,9 @@ function addon:RefreshSideDock()
         table.insert(lines, self:L("BEAST_ACTIVE_LINE_FMT", self:GetSpecActiveName(spec), self:GetSpecActiveDesc(spec)))
         table.insert(lines, self:L("BEAST_PASSIVE_LINE_FMT", self:GetSpecPassiveName(spec), self:GetSpecPassiveDesc(spec)))
         table.insert(lines, self:L("BEAST_SKILL_LINE_FMT", self:GetFamilySkill(fam)))
+        if beast.questOnly then
+            table.insert(lines, self:L("BEAST_QUEST_ONLY_LINE"))
+        end
         local fDesc = self:GetFamilyDesc(fam)
         if fDesc then
             table.insert(lines, "|cffaaaaaa" .. fDesc .. "|r")
@@ -2152,6 +2169,9 @@ function addon:RefreshUI()
             if beast.tomes and #beast.tomes > 0 then
                 table.insert(badges, self:L("BADGE_TOME_UNLEARNED"))
             end
+            if beast.questOnly then
+                table.insert(badges, self:L("BADGE_QUEST"))
+            end
             card.roleBadge:SetText(table.concat(badges, " "))
 
             if self:IsBeastCollected(beast) then
@@ -2180,6 +2200,40 @@ function addon:RefreshUI()
     end
 
     self:RefreshSideDock()
+end
+
+function addon:OpenBeastInUI(beast)
+    if not beast then return end
+    if not ui.mainFrame then
+        self:InitUI()
+    end
+    ui.viewMode = "BEASTS"
+    ui.selectedFamily = beast.family or "ALL"
+    local fam = self.FamilyByID and self.FamilyByID[beast.family]
+    ui.selectedSpec = (fam and fam.spec) or "ALL"
+    ui.selectedRole = "ALL"
+    ui.selectedTomeFilter = nil
+    ui.onlyUncollected = false
+    ui.searchText = ""
+    if ui.searchBox then
+        ui.searchBox:SetText("")
+    end
+    ui.selectedBeast = beast
+    ui.mainFrame:Show()
+    if ui.sideDock then
+        ui.sideDock:Show()
+    end
+    self:RefreshUI()
+    for idx, b in ipairs(ui.filteredBeasts or {}) do
+        if b.id == beast.id then
+            local targetPage = math.ceil(idx / PAGE_SIZE)
+            if targetPage ~= ui.currentPage then
+                ui.currentPage = targetPage
+                self:RefreshUI()
+            end
+            break
+        end
+    end
 end
 
 function addon:ToggleMainWindow()
@@ -2449,6 +2503,11 @@ SlashCmdList["BEASTCOLLECTOR"] = function(msg)
             return
         end
         addon:ToggleLanguage()
+    elseif cmd == "testalert" or cmd == "alert" then
+        local testBeast = (addon.BeastByNpcID and addon.BeastByNpcID[255847]) or (addon.Beasts and addon.Beasts[1])
+        if testBeast and addon.TriggerQuestBeastAlert then
+            addon:TriggerQuestBeastAlert(testBeast, addon:GetBeastName(testBeast), true)
+        end
     elseif cmd == "minimap" or cmd == "mm" then
         if addon.db and addon.db.minimap then
             addon.db.minimap.hide = not addon.db.minimap.hide
