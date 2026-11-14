@@ -425,6 +425,24 @@ local ROLE_FILTERS = {
         descEN = "Beasts and families that require learning special Taming Tomes or items (Florafauns, Direhorns, Mechanicals, Feathermanes, Blood Beasts, Undead, Cloud Serpents, Lesser Dragonkin, Gargons).",
     },
     {
+        id = "UNIQUE_LOOK",
+        short = ICON_STAR .. " Уникальные (1 моб / 3D)",
+        shortEN = ICON_STAR .. " Unique Looks (1 NPC / 3D)",
+        label = ICON_STAR .. " Уникальная модель / текстура (1 моб в игре)",
+        labelEN = ICON_STAR .. " Unique Model / Texture (Only 1 Beast in Game)",
+        desc = "Эксклюзивные расцветки и модели, которые во всём World of Warcraft носит только один-единственный зверь или которые не имеют перекрасок — идеальный выбор для элитных стойл!",
+        descEN = "Exclusive skins and 3D models worn by only a single creature in all of World of Warcraft or having zero recolors — the ultimate choice for filling your Hunter Stables!",
+    },
+    {
+        id = "UNIQUE_MODEL",
+        short = ICON_STAR .. " Уникальные 3D-модели",
+        shortEN = ICON_STAR .. " Unique 3D Models Only",
+        label = ICON_STAR .. " Только уникальные 3D-модели (без перекрасок!)",
+        labelEN = ICON_STAR .. " Unique 3D Models Only (No Recolors in Game!)",
+        desc = "Самые редкие звери Азерота (59 обликов), у которых даже сама 3D-модель существует в единственном экземпляре без других цветовых вариантов!",
+        descEN = "The rarest beasts in Azeroth (59 looks) whose entire 3D mesh exists in only a single variant with no recolors anywhere in the game!",
+    },
+    {
         id = "RARE_ONLY",
         short = ICON_STAR .. " Редкие и Секреты",
         shortEN = ICON_STAR .. " Rares & Secrets",
@@ -1165,6 +1183,13 @@ function addon:InitUI()
             if bZone ~= "" then
                 GameTooltip:AddLine(addon:L("TT_CARD_ZONE_FMT", bZone), 0.9, 0.9, 0.9)
             end
+            if self.beast.isUniqueModel and self.beast.isUniqueNpc then
+                GameTooltip:AddLine(addon:L("UNIT_TT_UNIQUE_BOTH"), 1.0, 0.55, 1.0, true)
+            elseif self.beast.isUniqueModel then
+                GameTooltip:AddLine(addon:L("UNIT_TT_UNIQUE_MODEL"), 1.0, 0.55, 1.0, true)
+            elseif self.beast.isUniqueNpc then
+                GameTooltip:AddLine(addon:L("UNIT_TT_UNIQUE_SKIN"), 0.85, 0.65, 1.0, true)
+            end
             if self.beast.questOnly then
                 GameTooltip:AddLine(addon:L("UNIT_TT_QUEST_ONLY_WARN"), 1.0, 0.4, 0.0, true)
             end
@@ -1632,6 +1657,10 @@ local function BeastMatchesRoleFilter(beast, fam, roleID)
     elseif roleID == "RARE_ONLY" then
         local r = beast.rarity
         return (r == "SPIRIT" or r == "SECRET" or r == "RARE" or r == "BOSS")
+    elseif roleID == "UNIQUE_LOOK" then
+        return beast.isUniqueLook == true
+    elseif roleID == "UNIQUE_MODEL" then
+        return beast.isUniqueModel == true
     elseif roleID == "QUEST_ONLY" then
         return beast.questOnly == true
     end
@@ -1886,6 +1915,13 @@ function addon:RefreshSideDock()
         table.insert(lines, self:L("BEAST_ACTIVE_LINE_FMT", self:GetSpecActiveName(spec), self:GetSpecActiveDesc(spec)))
         table.insert(lines, self:L("BEAST_PASSIVE_LINE_FMT", self:GetSpecPassiveName(spec), self:GetSpecPassiveDesc(spec)))
         table.insert(lines, self:L("BEAST_SKILL_LINE_FMT", self:GetFamilySkill(fam)))
+        if beast.isUniqueModel and beast.isUniqueNpc then
+            table.insert(lines, self:L("BEAST_UNIQUE_BOTH_LINE"))
+        elseif beast.isUniqueModel then
+            table.insert(lines, self:L("BEAST_UNIQUE_MODEL_LINE"))
+        elseif beast.isUniqueNpc then
+            table.insert(lines, self:L("BEAST_UNIQUE_SKIN_LINE"))
+        end
         if beast.questOnly then
             table.insert(lines, self:L("BEAST_QUEST_ONLY_LINE"))
         end
@@ -2171,6 +2207,11 @@ function addon:RefreshUI()
             end
             if beast.questOnly then
                 table.insert(badges, self:L("BADGE_QUEST"))
+            end
+            if beast.isUniqueModel then
+                table.insert(badges, self:L("BADGE_UNIQUE_MODEL"))
+            elseif beast.isUniqueNpc then
+                table.insert(badges, self:L("BADGE_UNIQUE_SKIN"))
             end
             card.roleBadge:SetText(table.concat(badges, " "))
 
