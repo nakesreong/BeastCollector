@@ -18,7 +18,7 @@
 *   **Open-World Unit Tooltip Diagnostics (Patch 12.0 Secret-Value Safe):** Hovering over any tameable beast in the world displays its family, specialization (`Ferocity`, `Cunning`, `Tenacity`), active/passive combat abilities, whether its look is already in your stables, and exact reasons why a beast cannot be tamed right now (missing *Beast Mastery* spec for Exotic families, creature level higher than player level, or unlearned Taming Tome).
 *   **Multi-Hop Portal & Zone-Exit Route Navigator:** Clicking **Plot Route to Beast / Tome** builds an automatic step-by-step portal chain from isolated zones (*Harandar / The Den*, *Silvermoon City*, *Voidstorm*, *Emerald Dream*, *Dornogal*, *Valdrakken*, *Oribos*, *Boralus / Dazar'alor*, *Stormwind / Orgrimmar*) to your target's exact spawn coordinates using Blizzard's native 3D SuperTrack diamond pin (`C_Map.SetUserWaypoint` + `C_SuperTrack`) and **TomTom**.
 *   **Live Stable Sync & Abandon Reconciliation:** Automatically scans your active pet and all **205 Hunter Stable slots** (`C_StableInfo.GetStablePetInfo`), updating your collected looks immediately—even when you release a pet into the wild (`PetAbandon`).
-*   **Bilingual Localization (`enUS` & `ruRU`) with Instant Hot-Swap:** Automatically detects your WoW client language (`GetLocale()`) and includes a `[RU]` / `[EN]` toggle button right in the window header to switch the entire interface and database between English and Russian on the fly without `/reload`.
+*   **Multi-Language Support (All 11 WoW Client Locales) + Instant Hot-Swap:** Automatically detects your WoW client language (`GetLocale()` — supporting `enUS`, `deDE`, `frFR`, `esES`, `esMX`, `ptBR`, `itIT`, `ruRU`, `koKR`, `zhCN`, `zhTW`) with native localized zone names (`C_Map.GetMapInfo`), plus a quick `[RU]` / `[EN]` toggle button right in the window header (and `/bc lang [auto|en|ru|de|fr|es|pt|it|ko|zh|tw]`) to switch languages on the fly without `/reload`.
 
 ***
 
@@ -55,7 +55,7 @@
 ## Slash Commands & Controls
 
 *   `/bc` or `/beastcollector` — Toggle the main **BeastCollector** window.
-*   `/bc lang` (or `/bc en`, `/bc ru`, `/bc auto`) — Instantly toggle interface language between **English (`enUS`)** and **Russian (`ruRU`)** without reloading UI.
+*   `/bc lang [auto|en|ru|de|fr|es|pt|it|ko|zh|tw]` — Instantly switch interface language without reloading UI.
 *   `/bc scan` — Force a manual scan of your Hunter Stables and active pet.
 *   `/bc testalert` — Preview the **Quest-Exclusive Beast Alert Banner** at the top of the screen.
 *   `/bc minimap` or `/bc mm` — Show or hide the round minimap button.

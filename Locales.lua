@@ -414,24 +414,478 @@ local Locales = {
         ALERT_TT_CLICK_HINT     = "|cff00ff96Left-Click:|r Open Beast Dossier   |cffaaaaaaRight-Click:|r Dismiss",
         CHAT_QUEST_ALERT_FMT    = "|cffff6600[BeastCollector — Quest Exclusive!]|r |cffffd100%s|r (%s) spotted nearby — missing from your stables! Tame BEFORE turning in the quest!",
     },
+
+    deDE = {
+        TITLE_ALL_FAMILIES      = "Jägerbegleiter — Alle 61 Familien",
+        TITLE_TOMES_TAB         = "Jägerbegleiter — Zähmungsfolianten (11)",
+        TITLE_SPEC_PREFIX       = "Jägerbegleiter — Spezialisierung: ",
+        TITLE_PREFIX            = "Jägerbegleiter — ",
+        TAB_ALL_MODELS          = "Alle Modelle",
+        TAB_UNCOLLECTED         = "Nicht gesammelt",
+        TAB_TOMES_FMT           = " Folianten (%d)",
+        PROGRESS_TOMES_FMT      = "Folianten: %d / %d",
+        SEARCH_PLACEHOLDER      = "Wildtier / Zone / Foliant...",
+        LANG_BTN_LABEL          = "RU",
+        LANG_BTN_TOOLTIP_TITLE  = "Sprache: Deutsch (DE)",
+        LANG_BTN_TOOLTIP_DESC   = "Klicken zum Umschalten (RU / EN) oder /bc lang auto!",
+        CHAT_LANG_SWITCHED      = "|cff00ff96[BeastCollector]|r Sprache geändert auf: |cffffd100Deutsch (DE)|r.",
+        FILTER_TRAITS_DEFAULT   = "Fähigkeiten & Rollen [v]",
+        SPEC_MENU_ALL_FMT       = "Alle: %s (%d)",
+        TAG_EXOTIC_PAREN        = "(Exotisch)",
+        TAG_TOME_PAREN          = "(Foliant)",
+        TAG_EXOTIC_FULL         = " |cff00ccff(Exotisch — Nur Tierherrschaft)|r",
+        TAG_ALL_SPECS_FULL      = " |cff88ff88(Alle 3 Speccs)|r",
+        TT_ALL_FAMILIES_TITLE   = "Alle 61 Begleiterfamilien",
+        TT_ALL_FAMILIES_DESC    = "Zeigt alle zähmbaren Modelle (Wildheit, Gerissenheit und Hartnäckigkeit).",
+        RARITY_SPIRIT           = "Geisterbestie",
+        RARITY_SECRET           = "Geheimnis / Beschwörung",
+        RARITY_BOSS             = "Raid- / Dungeonboss",
+        RARITY_RARE             = "Seltener Gegner (Rare)",
+        RARITY_COMMON           = "Gewöhnlich",
+        PAGE_FMT                = "Seite %d/%d",
+        DOCK_TITLE_BEAST        = " |cffffd100Begleiter-Dossier|r",
+        DOCK_TITLE_TOME         = " |cffffd100Folianten-Dossier|r",
+        DOCK_ROTATE_HINT        = "LMT: Drehen • Mausrad: Zoom",
+        DOCK_STATUS_LEARNED     = " |cff00ff96Erlernt!|r",
+        DOCK_STATUS_UNLEARNED   = " |cffff8800Noch nicht erlernt|r",
+        DOCK_STATUS_UNTAMED     = " |cffff8800Noch nicht gezähmt|r",
+        DOCK_SCOPE_ACCOUNT      = "|cff00ccffAccountweit|r",
+        DOCK_SCOPE_CHAR         = "|cffffaa00Charakterspezifisch|r",
+        BTN_NAV_BEAST           = " Route zum Wildtier (TomTom + Karte)",
+        BTN_NAV_TOME            = " Route zum Folianten (TomTom + Karte)",
+        BTN_SHOW_MAP            = "Auf Karte",
+        BTN_MARK_COLLECTED      = " Als gesammelt",
+        BTN_UNMARK              = "Abwählen",
+        BTN_MARK_LEARNED        = " Als erlernt",
+        BTN_BEASTS_COUNT_FMT    = "Wildtiere (%d)",
+        COL_MANUAL              = "In Sammlung markiert",
+        COL_STABLED_FMT         = "Im Stall: %s",
+        ACTIVE_PET_FALLBACK     = "Aktiver Begleiter",
+        UNKNOWN_ZONE            = "Unbekannt",
+        MINIMAP_TT_SUBTITLE     = "3D-Begleiter-Kleiderschrank & Folianten-Tracker",
+        MINIMAP_TT_COLLECTED    = "Gesammelte Modelle: |cff00ff96%d / %d|r",
+        UNIT_TT_MISSING_MODEL   = "   %s |cffffaa00Dieses Modell fehlt noch in deinem Stall!|r",
+        UNIT_TT_QUEST_ONLY_WARN = "   |cffff5500! QUEST-EXKLUSIV: VOR Questabgabe zähmen (danach nicht mehr verfügbar)!|r",
+        ALERT_QUEST_HEADER      = "ACHTUNG: QUEST-EXKLUSIVES WILDTIER IN DER NÄHE!",
+        ALERT_QUEST_SUB         = "Zähme es VOR Abgabe der Quest — danach für immer verloren!",
+        ALERT_TT_TITLE          = "|cffff6600BeastCollector — Quest-Exklusiv|r",
+        ALERT_TT_DESC           = "Dieses Wildtier existiert nur während dieser Questphase und fehlt noch in deiner Sammlung!",
+        ALERT_TT_CLICK_HINT     = "|cff00ff96Linksklick:|r Dossier öffnen   |cffaaaaaaRechtsklick:|r Schließen",
+        CHAT_QUEST_ALERT_FMT    = "|cffff6600[BeastCollector — Quest-Exklusiv!]|r |cffffd100%s|r (%s) in der Nähe — fehlt in deinem Stall! Unbedingt VOR Questabgabe zähmen!",
+    },
+
+    frFR = {
+        TITLE_ALL_FAMILIES      = "Familiers du chasseur — Les 61 familles",
+        TITLE_TOMES_TAB         = "Familiers du chasseur — Tomes de domptage (11)",
+        TITLE_SPEC_PREFIX       = "Familiers du chasseur — Spécialisation : ",
+        TITLE_PREFIX            = "Familiers du chasseur — ",
+        TAB_ALL_MODELS          = "Tous les modèles",
+        TAB_UNCOLLECTED         = "Non collectés",
+        TAB_TOMES_FMT           = " Tomes (%d)",
+        PROGRESS_TOMES_FMT      = "Tomes : %d / %d",
+        SEARCH_PLACEHOLDER      = "Chercher bête / zone / tome...",
+        LANG_BTN_LABEL          = "RU",
+        LANG_BTN_TOOLTIP_TITLE  = "Langue : Français (FR)",
+        LANG_BTN_TOOLTIP_DESC   = "Cliquez pour basculer (RU / EN) ou /bc lang auto !",
+        CHAT_LANG_SWITCHED      = "|cff00ff96[BeastCollector]|r Langue changée en : |cffffd100Français (FR)|r.",
+        FILTER_TRAITS_DEFAULT   = "Traits & Techniques [v]",
+        SPEC_MENU_ALL_FMT       = "Tout : %s (%d)",
+        TAG_EXOTIC_PAREN        = "(Exotique)",
+        TAG_TOME_PAREN          = "(Tome)",
+        TAG_EXOTIC_FULL         = " |cff00ccff(Exotique — Maîtrise des bêtes)|r",
+        TAG_ALL_SPECS_FULL      = " |cff88ff88(Les 3 spécialisations)|r",
+        RARITY_SPIRIT           = "Esprit de bête",
+        RARITY_SECRET           = "Secret / Invocation",
+        RARITY_BOSS             = "Boss de raid / donjon",
+        RARITY_RARE             = "Monstre rare",
+        RARITY_COMMON           = "Commun",
+        PAGE_FMT                = "Page %d/%d",
+        DOCK_TITLE_BEAST        = " |cffffd100Dossier du familier|r",
+        DOCK_TITLE_TOME         = " |cffffd100Dossier du tome|r",
+        DOCK_ROTATE_HINT        = "Clic G : Tourner • Molette : Zoom",
+        DOCK_STATUS_LEARNED     = " |cff00ff96Appris !|r",
+        DOCK_STATUS_UNLEARNED   = " |cffff8800Non appris|r",
+        DOCK_STATUS_UNTAMED     = " |cffff8800Non dompté|r",
+        DOCK_SCOPE_ACCOUNT      = "|cff00ccffLié au compte|r",
+        DOCK_SCOPE_CHAR         = "|cffffaa00Lié au personnage|r",
+        BTN_NAV_BEAST           = " Tracer la route vers la bête (TomTom + Carte)",
+        BTN_NAV_TOME            = " Tracer la route vers le tome (TomTom + Carte)",
+        BTN_SHOW_MAP            = "Carte",
+        BTN_MARK_COLLECTED      = " Marquer acquis",
+        BTN_UNMARK              = "Retirer",
+        BTN_MARK_LEARNED        = " Marquer appris",
+        BTN_BEASTS_COUNT_FMT    = "Bêtes (%d)",
+        COL_MANUAL              = "Marqué dans la collection",
+        COL_STABLED_FMT         = "À l'écurie : %s",
+        ACTIVE_PET_FALLBACK     = "Familier actif",
+        UNKNOWN_ZONE            = "Inconnu",
+        MINIMAP_TT_SUBTITLE     = "Garde-robe 3D des familiers & Suivi des tomes",
+        MINIMAP_TT_COLLECTED    = "Apparences collectées : |cff00ff96%d / %d|r",
+        UNIT_TT_MISSING_MODEL   = "   %s |cffffaa00Cette apparence n'est pas encore dans votre écurie !|r",
+        UNIT_TT_QUEST_ONLY_WARN = "   |cffff5500! EXCLUSIVITÉ DE QUÊTE : Domptez AVANT de rendre la quête !|r",
+        ALERT_QUEST_HEADER      = "ATTENTION : BÊTE EXCLUSIVE DE QUÊTE À PROXIMITÉ !",
+        ALERT_QUEST_SUB         = "Domptez-la AVANT de rendre la quête — impossible à obtenir ensuite !",
+        ALERT_TT_TITLE          = "|cffff6600BeastCollector — Exclusivité de quête|r",
+        ALERT_TT_DESC           = "Cette bête n'existe que pendant cette phase de quête et n'est PAS encore dans votre collection !",
+        ALERT_TT_CLICK_HINT     = "|cff00ff96Clic gauche :|r Ouvrir le dossier   |cffaaaaaaClic droit :|r Fermer",
+        CHAT_QUEST_ALERT_FMT    = "|cffff6600[BeastCollector — Exclusivité de quête !]|r |cffffd100%s|r (%s) à proximité — absent de votre écurie ! Domptez-le AVANT de rendre la quête !",
+    },
+
+    esES = {
+        TITLE_ALL_FAMILIES      = "Mascotas de cazador — Las 61 familias",
+        TITLE_TOMES_TAB         = "Mascotas de cazador — Tomos de doma (11)",
+        TITLE_SPEC_PREFIX       = "Mascotas de cazador — Especialización: ",
+        TITLE_PREFIX            = "Mascotas de cazador — ",
+        TAB_ALL_MODELS          = "Todos los modelos",
+        TAB_UNCOLLECTED         = "No coleccionados",
+        TAB_TOMES_FMT           = " Tomos (%d)",
+        PROGRESS_TOMES_FMT      = "Tomos: %d / %d",
+        SEARCH_PLACEHOLDER      = "Buscar bestia / zona / tomo...",
+        LANG_BTN_LABEL          = "RU",
+        LANG_BTN_TOOLTIP_TITLE  = "Idioma: Español (ES)",
+        LANG_BTN_TOOLTIP_DESC   = "¡Haz clic para cambiar (RU / EN) o usa /bc lang auto!",
+        CHAT_LANG_SWITCHED      = "|cff00ff96[BeastCollector]|r Idioma cambiado a: |cffffd100Español (ES)|r.",
+        FILTER_TRAITS_DEFAULT   = "Rasgos y Habilidades [v]",
+        SPEC_MENU_ALL_FMT       = "Todo: %s (%d)",
+        TAG_EXOTIC_PAREN        = "(Exótica)",
+        TAG_TOME_PAREN          = "(Tomo)",
+        TAG_EXOTIC_FULL         = " |cff00ccff(Exótica — Solo Bestias)|r",
+        TAG_ALL_SPECS_FULL      = " |cff88ff88(Las 3 especializaciones)|r",
+        RARITY_SPIRIT           = "Bestia espíritu",
+        RARITY_SECRET           = "Secreto / Invocación",
+        RARITY_BOSS             = "Jefe de banda / mazmorra",
+        RARITY_RARE             = "Raro",
+        RARITY_COMMON           = "Común",
+        PAGE_FMT                = "Pág. %d/%d",
+        DOCK_TITLE_BEAST        = " |cffffd100Dosier de bestia|r",
+        DOCK_TITLE_TOME         = " |cffffd100Dosier de tomo|r",
+        DOCK_ROTATE_HINT        = "Clic izq.: Rotar • Rueda: Zoom",
+        DOCK_STATUS_LEARNED     = " |cff00ff96¡Aprendido!|r",
+        DOCK_STATUS_UNLEARNED   = " |cffff8800No aprendido|r",
+        DOCK_STATUS_UNTAMED     = " |cffff8800No domesticado|r",
+        DOCK_SCOPE_ACCOUNT      = "|cff00ccffPara toda la cuenta|r",
+        DOCK_SCOPE_CHAR         = "|cffffaa00Por personaje|r",
+        BTN_NAV_BEAST           = " Trazar ruta a la bestia (TomTom + Mapa)",
+        BTN_NAV_TOME            = " Trazar ruta al tomo (TomTom + Mapa)",
+        BTN_SHOW_MAP            = "En mapa",
+        BTN_MARK_COLLECTED      = " Marcar propio",
+        BTN_UNMARK              = "Desmarcar",
+        BTN_MARK_LEARNED        = " Marcar aprendido",
+        BTN_BEASTS_COUNT_FMT    = "Bestias (%d)",
+        COL_MANUAL              = "Marcado en tu colección",
+        COL_STABLED_FMT         = "En establo: %s",
+        ACTIVE_PET_FALLBACK     = "Mascota activa",
+        UNKNOWN_ZONE            = "Desconocido",
+        MINIMAP_TT_SUBTITLE     = "Armario 3D de mascotas de cazador y Tomos",
+        MINIMAP_TT_COLLECTED    = "Apariencias coleccionadas: |cff00ff96%d / %d|r",
+        UNIT_TT_MISSING_MODEL   = "   %s |cffffaa00¡Aún no tienes esta apariencia en tu establo!|r",
+        UNIT_TT_QUEST_ONLY_WARN = "   |cffff5500! EXCLUSIVO DE MISIÓN: ¡Domestícalo ANTES de entregar la misión!|r",
+        ALERT_QUEST_HEADER      = "¡ATENCIÓN: BESTIA EXCLUSIVA DE MISIÓN CERCA!",
+        ALERT_QUEST_SUB         = "¡Domestícala ANTES de entregar la misión — no podrás conseguirla después!",
+        ALERT_TT_TITLE          = "|cffff6600BeastCollector — Exclusivo de misión|r",
+        ALERT_TT_DESC           = "¡Esta bestia solo existe dentro de una fase de misión y AÚN NO está en tu colección!",
+        ALERT_TT_CLICK_HINT     = "|cff00ff96Clic izq.:|r Abrir dosier   |cffaaaaaaClic der.:|r Cerrar",
+        CHAT_QUEST_ALERT_FMT    = "|cffff6600[BeastCollector — ¡Exclusivo de misión!]|r |cffffd100%s|r (%s) cerca — ¡falta en tu establo! ¡Domestícalo ANTES de entregar la misión!",
+    },
+
+    ptBR = {
+        TITLE_ALL_FAMILIES      = "Ajudantes de Caçador — Todas as 61 Famílias",
+        TITLE_TOMES_TAB         = "Ajudantes de Caçador — Tomos de Domar (11)",
+        TITLE_SPEC_PREFIX       = "Ajudantes de Caçador — Especialização: ",
+        TITLE_PREFIX            = "Ajudantes de Caçador — ",
+        TAB_ALL_MODELS          = "Todos os Modelos",
+        TAB_UNCOLLECTED         = "Não Coletados",
+        TAB_TOMES_FMT           = " Tomos (%d)",
+        PROGRESS_TOMES_FMT      = "Tomos: %d / %d",
+        SEARCH_PLACEHOLDER      = "Buscar fera / zona / tomo...",
+        LANG_BTN_LABEL          = "RU",
+        LANG_BTN_TOOLTIP_TITLE  = "Idioma: Português (BR)",
+        LANG_BTN_TOOLTIP_DESC   = "Clique para alternar (RU / EN) ou use /bc lang auto!",
+        CHAT_LANG_SWITCHED      = "|cff00ff96[BeastCollector]|r Idioma alterado para: |cffffd100Português (BR)|r.",
+        FILTER_TRAITS_DEFAULT   = "Traços e Habilidades [v]",
+        SPEC_MENU_ALL_FMT       = "Todos: %s (%d)",
+        TAG_EXOTIC_PAREN        = "(Exótico)",
+        TAG_TOME_PAREN          = "(Tomo)",
+        TAG_EXOTIC_FULL         = " |cff00ccff(Exótico — Apenas Domínio das Feras)|r",
+        TAG_ALL_SPECS_FULL      = " |cff88ff88(Todas as 3 Especializações)|r",
+        RARITY_SPIRIT           = "Fera Espiritual",
+        RARITY_SECRET           = "Segredo / Evocação",
+        RARITY_BOSS             = "Chefe de Raide / Masmorra",
+        RARITY_RARE             = "Raro",
+        RARITY_COMMON           = "Comum",
+        PAGE_FMT                = "Pág. %d/%d",
+        DOCK_TITLE_BEAST        = " |cffffd100Dossiê da Fera|r",
+        DOCK_TITLE_TOME         = " |cffffd100Dossiê do Tomo|r",
+        DOCK_ROTATE_HINT        = "Botão Esq.: Girar • Roda: Zoom",
+        DOCK_STATUS_LEARNED     = " |cff00ff96Aprendido!|r",
+        DOCK_STATUS_UNLEARNED   = " |cffff8800Não Aprendido|r",
+        DOCK_STATUS_UNTAMED     = " |cffff8800Não Domado|r",
+        DOCK_SCOPE_ACCOUNT      = "|cff00ccffPara toda a Conta|r",
+        DOCK_SCOPE_CHAR         = "|cffffaa00Por Personagem|r",
+        BTN_NAV_BEAST           = " Traçar Rota para a Fera (TomTom + Mapa)",
+        BTN_NAV_TOME            = " Traçar Rota para o Tomo (TomTom + Mapa)",
+        BTN_SHOW_MAP            = "No Mapa",
+        BTN_MARK_COLLECTED      = " Marcar Coletado",
+        BTN_UNMARK              = "Desmarcar",
+        BTN_MARK_LEARNED        = " Marcar Aprendido",
+        BTN_BEASTS_COUNT_FMT    = "Feras (%d)",
+        COL_MANUAL              = "Marcado na Coleção",
+        COL_STABLED_FMT         = "No Estábulo: %s",
+        ACTIVE_PET_FALLBACK     = "Ajudante Ativo",
+        UNKNOWN_ZONE            = "Desconhecido",
+        MINIMAP_TT_SUBTITLE     = "Guarda-Roupa 3D de Feras e Rastreador de Tomos",
+        MINIMAP_TT_COLLECTED    = "Aparências Coletadas: |cff00ff96%d / %d|r",
+        UNIT_TT_MISSING_MODEL   = "   %s |cffffaa00Você ainda não tem esta aparência no estábulo!|r",
+        UNIT_TT_QUEST_ONLY_WARN = "   |cffff5500! EXCLUSIVO DE MISSÃO: Dome ANTES de entregar a missão!|r",
+        ALERT_QUEST_HEADER      = "ATENÇÃO: FERA EXCLUSIVA DE MISSÃO POR PERTO!",
+        ALERT_QUEST_SUB         = "Dome ANTES de entregar a missão — impossível obter depois!",
+        ALERT_TT_TITLE          = "|cffff6600BeastCollector — Exclusivo de Missão|r",
+        ALERT_TT_DESC           = "Esta fera só existe dentro de uma fase de missão e AINDA NÃO está na sua coleção!",
+        ALERT_TT_CLICK_HINT     = "|cff00ff96Clique Esq.:|r Abrir Dossiê   |cffaaaaaaClique Dir.:|r Fechar",
+        CHAT_QUEST_ALERT_FMT    = "|cffff6600[BeastCollector — Exclusivo de Missão!]|r |cffffd100%s|r (%s) por perto — falta no seu estábulo! Dome ANTES de entregar a missão!",
+    },
+
+    itIT = {
+        TITLE_ALL_FAMILIES      = "Famigli del Cacciatore — Tutte le 61 Famiglie",
+        TITLE_TOMES_TAB         = "Famigli del Cacciatore — Tomi d'Addomesticamento (11)",
+        TITLE_SPEC_PREFIX       = "Famigli del Cacciatore — Specializzazione: ",
+        TITLE_PREFIX            = "Famigli del Cacciatore — ",
+        TAB_ALL_MODELS          = "Tutti i Modelli",
+        TAB_UNCOLLECTED         = "Non Collezionati",
+        TAB_TOMES_FMT           = " Tomi (%d)",
+        PROGRESS_TOMES_FMT      = "Tomi: %d / %d",
+        SEARCH_PLACEHOLDER      = "Cerca bestia / zona / tomo...",
+        LANG_BTN_LABEL          = "RU",
+        LANG_BTN_TOOLTIP_TITLE  = "Lingua: Italiano (IT)",
+        LANG_BTN_TOOLTIP_DESC   = "Clicca per cambiare (RU / EN) o usa /bc lang auto!",
+        CHAT_LANG_SWITCHED      = "|cff00ff96[BeastCollector]|r Lingua impostata su: |cffffd100Italiano (IT)|r.",
+        FILTER_TRAITS_DEFAULT   = "Tratti e Abilità [v]",
+        SPEC_MENU_ALL_FMT       = "Tutti: %s (%d)",
+        RARITY_SPIRIT           = "Bestia Spirito",
+        RARITY_SECRET           = "Segreto / Evocazione",
+        RARITY_BOSS             = "Boss Incursione / Spedizione",
+        RARITY_RARE             = "Raro",
+        RARITY_COMMON           = "Comune",
+        PAGE_FMT                = "Pag. %d/%d",
+        DOCK_TITLE_BEAST        = " |cffffd100Dossier Bestia|r",
+        DOCK_TITLE_TOME         = " |cffffd100Dossier Tomo|r",
+        BTN_NAV_BEAST           = " Traccia Percorso per la Bestia (TomTom + Mappa)",
+        BTN_NAV_TOME            = " Traccia Percorso per il Tomo (TomTom + Mappa)",
+        BTN_SHOW_MAP            = "Sulla Mappa",
+        BTN_MARK_COLLECTED      = " Segna Ottenuto",
+        BTN_UNMARK              = "Rimuovi",
+        UNIT_TT_MISSING_MODEL   = "   %s |cffffaa00Non hai ancora questo aspetto nella tua scuderia!|r",
+        UNIT_TT_QUEST_ONLY_WARN = "   |cffff5500! ESCLUSIVA MISSIONE: Addomestica PRIMA di consegnare la missione!|r",
+        ALERT_QUEST_HEADER      = "ATTENZIONE: BESTIA ESCLUSIVA DI MISSIONE VICINA!",
+        ALERT_QUEST_SUB         = "Addomesticala PRIMA di consegnare la missione — non ottenibile dopo!",
+    },
+
+    koKR = {
+        TITLE_ALL_FAMILIES      = "사냥꾼 야수 — 전체 61종 야수 가족",
+        TITLE_TOMES_TAB         = "사냥꾼 야수 — 길들이기 고서 및 비전서 (11)",
+        TITLE_SPEC_PREFIX       = "사냥꾼 야수 — 전문화: ",
+        TITLE_PREFIX            = "사냥꾼 야수 — ",
+        TAB_ALL_MODELS          = "모든 모델",
+        TAB_UNCOLLECTED         = "미수집",
+        TAB_TOMES_FMT           = " 고서 (%d)",
+        PROGRESS_TOMES_FMT      = "고서: %d / %d",
+        SEARCH_PLACEHOLDER      = "야수 / 지역 / 고서 검색...",
+        LANG_BTN_LABEL          = "RU",
+        LANG_BTN_TOOLTIP_TITLE  = "인터페이스 언어: 한국어 (KO)",
+        LANG_BTN_TOOLTIP_DESC   = "클릭하여 언어 전환 (RU / EN) 또는 /bc lang auto 입력!",
+        CHAT_LANG_SWITCHED      = "|cff00ff96[BeastCollector]|r 인터페이스 언어가 |cffffd100한국어 (KO)|r로 변경되었습니다.",
+        FILTER_TRAITS_DEFAULT   = "특성 및 능력 [v]",
+        SPEC_MENU_ALL_FMT       = "전체: %s (%d)",
+        RARITY_SPIRIT           = "야수 정령",
+        RARITY_SECRET           = "비밀 / 소환",
+        RARITY_BOSS             = "공격대 / 던전 우두머리",
+        RARITY_RARE             = "희귀 몬스터",
+        RARITY_COMMON           = "일반",
+        PAGE_FMT                = "페이지 %d/%d",
+        DOCK_TITLE_BEAST        = " |cffffd100야수 상세 정보|r",
+        DOCK_TITLE_TOME         = " |cffffd100고서 상세 정보|r",
+        DOCK_ROTATE_HINT        = "좌클릭: 회전 • 휠: 확대/축소",
+        DOCK_STATUS_LEARNED     = " |cff00ff96습득함!|r",
+        DOCK_STATUS_UNLEARNED   = " |cffff8800미습득|r",
+        DOCK_STATUS_UNTAMED     = " |cffff8800길들이지 않음|r",
+        DOCK_SCOPE_ACCOUNT      = "|cff00ccff계정 공유|r",
+        DOCK_SCOPE_CHAR         = "|cffffaa00캐릭터별|r",
+        BTN_NAV_BEAST           = " 야수 위치 경로 안내 (TomTom + 지도)",
+        BTN_NAV_TOME            = " 고서 위치 경로 안내 (TomTom + 지도)",
+        BTN_SHOW_MAP            = "지도 보기",
+        BTN_MARK_COLLECTED      = " 수집 완료 표시",
+        BTN_UNMARK              = "표시 해제",
+        BTN_MARK_LEARNED        = " 습득 완료 표시",
+        BTN_BEASTS_COUNT_FMT    = "야수 (%d)",
+        COL_MANUAL              = "수집품에 표시됨",
+        COL_STABLED_FMT         = "우리 보관 중: %s",
+        ACTIVE_PET_FALLBACK     = "소환된 야수",
+        UNKNOWN_ZONE            = "알 수 없음",
+        MINIMAP_TT_SUBTITLE     = "3D 사냥꾼 야수 옷장 및 고서 추적기",
+        MINIMAP_TT_COLLECTED    = "수집한 외형: |cff00ff96%d / %d|r",
+        UNIT_TT_MISSING_MODEL   = "   %s |cffffaa00아직 우리에 수집하지 않은 야수 외형입니다!|r",
+        UNIT_TT_QUEST_ONLY_WARN = "   |cffff5500! 퀘스트 한정 야수: 퀘스트 완료 전에 반드시 길들이세요!|r",
+        ALERT_QUEST_HEADER      = "경고: 주변에 퀘스트 한정 야수 발견!",
+        ALERT_QUEST_SUB         = "퀘스트 완료 전에 길들이세요 — 완료 후에는 다시 얻을 수 없습니다!",
+        ALERT_TT_TITLE          = "|cffff6600BeastCollector — 퀘스트 위상 한정 야수|r",
+        ALERT_TT_DESC           = "이 야수는 퀘스트 진행 중에만 등장하며 아직 수집하지 않았습니다!",
+        ALERT_TT_CLICK_HINT     = "|cff00ff96좌클릭:|r 야수 정보 열기   |cffaaaaaa우클릭:|r 닫기",
+        CHAT_QUEST_ALERT_FMT    = "|cffff6600[BeastCollector — 퀘스트 한정!]|r 주변에 |cffffd100%s|r (%s) 발견 — 미수집 외형입니다! 퀘스트 완료 전에 길들이세요!",
+    },
+
+    zhCN = {
+        TITLE_ALL_FAMILIES      = "猎人宠物 — 全部 61 个家族",
+        TITLE_TOMES_TAB         = "猎人宠物 — 驯服典籍与手册 (11)",
+        TITLE_SPEC_PREFIX       = "猎人宠物 — 专精：",
+        TITLE_PREFIX            = "猎人宠物 — ",
+        TAB_ALL_MODELS          = "全部模型",
+        TAB_UNCOLLECTED         = "未收集",
+        TAB_TOMES_FMT           = " 典籍 (%d)",
+        PROGRESS_TOMES_FMT      = "典籍：%d / %d",
+        SEARCH_PLACEHOLDER      = "搜索野兽 / 区域 / 典籍...",
+        LANG_BTN_LABEL          = "RU",
+        LANG_BTN_TOOLTIP_TITLE  = "界面语言：简体中文 (ZH)",
+        LANG_BTN_TOOLTIP_DESC   = "点击切换语言 (RU / EN) 或输入 /bc lang auto！",
+        CHAT_LANG_SWITCHED      = "|cff00ff96[BeastCollector]|r 界面语言已切换为：|cffffd100简体中文 (ZH)|r。",
+        FILTER_TRAITS_DEFAULT   = "特质与技能 [v]",
+        SPEC_MENU_ALL_FMT       = "全部：%s (%d)",
+        TAG_EXOTIC_PAREN        = "(奇珍)",
+        TAG_TOME_PAREN          = "(典籍)",
+        TAG_EXOTIC_FULL         = " |cff00ccff(奇珍异兽 — 仅限野兽控制)|r",
+        TAG_ALL_SPECS_FULL      = " |cff88ff88(全部 3 专精)|r",
+        RARITY_SPIRIT           = "灵魂兽",
+        RARITY_SECRET           = "隐藏 / 召唤",
+        RARITY_BOSS             = "团队 / 地下城首领",
+        RARITY_RARE             = "稀有精英",
+        RARITY_COMMON           = "普通",
+        PAGE_FMT                = "第 %d/%d 页",
+        DOCK_TITLE_BEAST        = " |cffffd100宠物档案|r",
+        DOCK_TITLE_TOME         = " |cffffd100典籍档案|r",
+        DOCK_ROTATE_HINT        = "左键：旋转 • 滚轮：缩放",
+        DOCK_STATUS_LEARNED     = " |cff00ff96已学会！|r",
+        DOCK_STATUS_UNLEARNED   = " |cffff8800尚未学会|r",
+        DOCK_STATUS_UNTAMED     = " |cffff8800尚未驯服|r",
+        DOCK_SCOPE_ACCOUNT      = "|cff00ccff战团账号通用|r",
+        DOCK_SCOPE_CHAR         = "|cffffaa00角色专属|r",
+        BTN_NAV_BEAST           = " 规划前往野兽路线 (TomTom + 地图)",
+        BTN_NAV_TOME            = " 规划前往典籍路线 (TomTom + 地图)",
+        BTN_SHOW_MAP            = "在地图上",
+        BTN_MARK_COLLECTED      = " 标记已收集",
+        BTN_UNMARK              = "取消标记",
+        BTN_MARK_LEARNED        = " 标记已学会",
+        BTN_BEASTS_COUNT_FMT    = "野兽 (%d)",
+        COL_MANUAL              = "已标记在收藏中",
+        COL_STABLED_FMT         = "兽栏中：%s",
+        ACTIVE_PET_FALLBACK     = "当前召唤宠物",
+        UNKNOWN_ZONE            = "未知",
+        MINIMAP_TT_SUBTITLE     = "3D 猎人宠物外观衣柜与典籍追踪",
+        MINIMAP_TT_COLLECTED    = "已收集外观：|cff00ff96%d / %d|r",
+        UNIT_TT_MISSING_MODEL   = "   %s |cffffaa00你的兽栏中还没有收集此模型外观！|r",
+        UNIT_TT_QUEST_ONLY_WARN = "   |cffff5500! 任务限定：请在交任务前驯服（交任务后位面消失）！|r",
+        ALERT_QUEST_HEADER      = "警告：附近发现任务限定绝版野兽！",
+        ALERT_QUEST_SUB         = "请在交任务前驯服 — 完成任务后将无法再次获得！",
+        ALERT_TT_TITLE          = "|cffff6600BeastCollector — 任务阶段限定野兽|r",
+        ALERT_TT_DESC           = "该野兽仅存在于任务镜像或场景战役中，且你尚未收集此外观！",
+        ALERT_TT_CLICK_HINT     = "|cff00ff96左键：|r打开野兽档案   |cffaaaaaa右键：|r关闭横幅",
+        CHAT_QUEST_ALERT_FMT    = "|cffff6600[BeastCollector — 任务限定！]|r 附近发现 |cffffd100%s|r (%s) — 你的兽栏尚未收集此外观！请在交任务前驯服！",
+    },
+
+    zhTW = {
+        TITLE_ALL_FAMILIES      = "獵人寵物 — 全部 61 個家族",
+        TITLE_TOMES_TAB         = "獵人寵物 — 馴服典籍與手冊 (11)",
+        TITLE_SPEC_PREFIX       = "獵人寵物 — 專精：",
+        TITLE_PREFIX            = "獵人寵物 — ",
+        TAB_ALL_MODELS          = "全部模型",
+        TAB_UNCOLLECTED         = "未收集",
+        TAB_TOMES_FMT           = " 典籍 (%d)",
+        PROGRESS_TOMES_FMT      = "典籍：%d / %d",
+        SEARCH_PLACEHOLDER      = "搜尋野獸 / 區域 / 典籍...",
+        LANG_BTN_LABEL          = "RU",
+        LANG_BTN_TOOLTIP_TITLE  = "介面語言：繁體中文 (TW)",
+        LANG_BTN_TOOLTIP_DESC   = "點擊切換語言 (RU / EN) 或輸入 /bc lang auto！",
+        CHAT_LANG_SWITCHED      = "|cff00ff96[BeastCollector]|r 介面語言已切換為：|cffffd100繁體中文 (TW)|r。",
+        FILTER_TRAITS_DEFAULT   = "特質與技能 [v]",
+        SPEC_MENU_ALL_FMT       = "全部：%s (%d)",
+        TAG_EXOTIC_PAREN        = "(奇珍)",
+        TAG_TOME_PAREN          = "(典籍)",
+        TAG_EXOTIC_FULL         = " |cff00ccff(奇珍異獸 — 僅限野獸控制)|r",
+        TAG_ALL_SPECS_FULL      = " |cff88ff88(全部 3 專精)|r",
+        RARITY_SPIRIT           = "靈魂獸",
+        RARITY_SECRET           = "隱藏 / 召喚",
+        RARITY_BOSS             = "團隊 / 地城首領",
+        RARITY_RARE             = "稀有精英",
+        RARITY_COMMON           = "普通",
+        PAGE_FMT                = "第 %d/%d 頁",
+        DOCK_TITLE_BEAST        = " |cffffd100寵物檔案|r",
+        DOCK_TITLE_TOME         = " |cffffd100典籍檔案|r",
+        DOCK_ROTATE_HINT        = "左鍵：旋轉 • 滾輪：縮放",
+        DOCK_STATUS_LEARNED     = " |cff00ff96已學會！|r",
+        DOCK_STATUS_UNLEARNED   = " |cffff8800尚未學會|r",
+        DOCK_STATUS_UNTAMED     = " |cffff8800尚未馴服|r",
+        DOCK_SCOPE_ACCOUNT      = "|cff00ccff戰團帳號通用|r",
+        DOCK_SCOPE_CHAR         = "|cffffaa00角色專屬|r",
+        BTN_NAV_BEAST           = " 規劃前往野獸路線 (TomTom + 地圖)",
+        BTN_NAV_TOME            = " 規劃前往典籍路線 (TomTom + 地圖)",
+        BTN_SHOW_MAP            = "在地圖上",
+        BTN_MARK_COLLECTED      = " 標記已收集",
+        BTN_UNMARK              = "取消標記",
+        BTN_MARK_LEARNED        = " 標記已學會",
+        BTN_BEASTS_COUNT_FMT    = "野獸 (%d)",
+        COL_MANUAL              = "已標記在收藏中",
+        COL_STABLED_FMT         = "獸欄中：%s",
+        ACTIVE_PET_FALLBACK     = "當前召喚寵物",
+        UNKNOWN_ZONE            = "未知",
+        MINIMAP_TT_SUBTITLE     = "3D 獵人寵物外觀衣櫃與典籍追蹤",
+        MINIMAP_TT_COLLECTED    = "已收集外觀：|cff00ff96%d / %d|r",
+        UNIT_TT_MISSING_MODEL   = "   %s |cffffaa00你的獸欄中還沒有收集此模型外觀！|r",
+        UNIT_TT_QUEST_ONLY_WARN = "   |cffff5500! 任務限定：請在交任務前馴服（交任務後鏡像消失）！|r",
+        ALERT_QUEST_HEADER      = "警告：附近發現任務限定絕版野獸！",
+        ALERT_QUEST_SUB         = "請在交任務前馴服 — 完成任務後將無法再次獲得！",
+        ALERT_TT_TITLE          = "|cffff6600BeastCollector — 任務階段限定野獸|r",
+        ALERT_TT_DESC           = "該野獸僅存在於任務鏡像或場景戰役中，且你尚未收集此外觀！",
+        ALERT_TT_CLICK_HINT     = "|cff00ff96左鍵：|r打開野獸檔案   |cffaaaaaa右鍵：|r關閉橫幅",
+        CHAT_QUEST_ALERT_FMT    = "|cffff6600[BeastCollector — 任務限定！]|r 附近發現 |cffffd100%s|r (%s) — 你的獸欄尚未收集此外觀！請在交任務前馴服！",
+    },
+}
+
+Locales.esMX = Locales.esES
+Locales.enGB = Locales.enUS
+
+local SPEC_LOCALE_NAMES = {
+    deDE = { FEROCITY = "Wildheit",   CUNNING = "Gerissenheit", TENACITY = "Hartnäckigkeit" },
+    frFR = { FEROCITY = "Férocité",   CUNNING = "Ruse",         TENACITY = "Ténacité" },
+    esES = { FEROCITY = "Ferocidad",  CUNNING = "Astucia",      TENACITY = "Tenacidad" },
+    esMX = { FEROCITY = "Ferocidad",  CUNNING = "Astucia",      TENACITY = "Tenacidad" },
+    ptBR = { FEROCITY = "Ferocidade", CUNNING = "Astúcia",      TENACITY = "Tenacidade" },
+    itIT = { FEROCITY = "Ferocia",    CUNNING = "Scaltrezza",   TENACITY = "Tenacia" },
+    koKR = { FEROCITY = "야수성",      CUNNING = "교활",         TENACITY = "끈기" },
+    zhCN = { FEROCITY = "狂野",       CUNNING = "狡诈",         TENACITY = "坚韧" },
+    zhTW = { FEROCITY = "狂野",       CUNNING = "狡詐",         TENACITY = "堅韌" },
 }
 
 addon.Locales = Locales
 
 function addon:GetActiveLocale()
     local pref = self.db and self.db.settings and self.db.settings.language
-    if pref == "ruRU" or pref == "enUS" then
-        return pref
+    if pref and pref ~= "AUTO" and Locales[pref] then
+        return (pref == "enGB") and "enUS" or pref
     end
     local clientLoc = (_G.GetLocale and _G.GetLocale()) or "enUS"
-    if clientLoc == "ruRU" then
-        return "ruRU"
+    if clientLoc == "enGB" then
+        return "enUS"
+    end
+    if Locales[clientLoc] then
+        return clientLoc
     end
     return "enUS"
 end
 
+function addon:IsRussian()
+    return self:GetActiveLocale() == "ruRU"
+end
+
 function addon:IsEnglish()
-    return self:GetActiveLocale() == "enUS"
+    return self:GetActiveLocale() ~= "ruRU"
 end
 
 function addon:L(key, ...)
@@ -448,7 +902,7 @@ end
 function addon:ToggleLanguage()
     if not self.db then return end
     self.db.settings = self.db.settings or {}
-    if self:IsEnglish() then
+    if self:GetActiveLocale() == "enUS" then
         self.db.settings.language = "ruRU"
     else
         self.db.settings.language = "enUS"
@@ -474,6 +928,15 @@ end
 -- ============================================================================
 -- LOCALIZED DATA GETTERS (Beasts, Families, Specs, Tomes)
 -- ============================================================================
+local function GetClientMapName(mapID)
+    if not mapID or not _G.C_Map or not _G.C_Map.GetMapInfo then return nil end
+    local ok, info = pcall(_G.C_Map.GetMapInfo, mapID)
+    if ok and info and type(info.name) == "string" and info.name ~= "" then
+        return info.name
+    end
+    return nil
+end
+
 function addon:GetBeastName(beast)
     if not beast then return "" end
     if self:IsEnglish() and beast.nameEN and beast.nameEN ~= "" then
@@ -495,6 +958,11 @@ end
 
 function addon:GetBeastZone(beast)
     if not beast then return self:L("UNKNOWN_ZONE") end
+    local loc = self:GetActiveLocale()
+    if loc ~= "ruRU" and loc ~= "enUS" and beast.mapID then
+        local nativeZone = GetClientMapName(beast.mapID)
+        if nativeZone then return nativeZone end
+    end
     if self:IsEnglish() then
         return beast.zoneEN or beast.zone or self:L("UNKNOWN_ZONE")
     end
@@ -543,6 +1011,10 @@ end
 
 function addon:GetSpecName(spec)
     if not spec then return "" end
+    local loc = self:GetActiveLocale()
+    if SPEC_LOCALE_NAMES[loc] and spec.id and SPEC_LOCALE_NAMES[loc][spec.id] then
+        return SPEC_LOCALE_NAMES[loc][spec.id]
+    end
     if self:IsEnglish() and spec.nameEN then
         return spec.nameEN
     end
@@ -631,6 +1103,11 @@ end
 
 function addon:GetTomeZone(tome)
     if not tome then return self:L("UNKNOWN_ZONE") end
+    local loc = self:GetActiveLocale()
+    if loc ~= "ruRU" and loc ~= "enUS" and tome.mapID then
+        local nativeZone = GetClientMapName(tome.mapID)
+        if nativeZone then return nativeZone end
+    end
     if self:IsEnglish() then
         return tome.zoneEN or tome.zone or self:L("UNKNOWN_ZONE")
     end

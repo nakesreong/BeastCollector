@@ -2491,13 +2491,24 @@ SlashCmdList["BEASTCOLLECTOR"] = function(msg)
         print(addon:IsEnglish()
             and "|cff00ff96[BeastCollector]|r Stables and active pet scanned."
             or "|cff00ff96[BeastCollector]|r Стойла и активный питомец просканированы.")
-    elseif cmd == "lang" or cmd == "en" or cmd == "ru" then
-        if cmd == "en" and addon.db and addon.db.settings then
-            addon.db.settings.language = "ruRU" -- ToggleLanguage переключит в enUS
-        elseif cmd == "ru" and addon.db and addon.db.settings then
-            addon.db.settings.language = "enUS" -- ToggleLanguage переключит в ruRU
-        elseif cmd == "auto" and addon.db and addon.db.settings then
-            addon.db.settings.language = "AUTO"
+    elseif cmd == "lang" or cmd == "en" or cmd == "ru" or cmd == "auto" or string.sub(cmd, 1, 5) == "lang " then
+        local arg = (string.sub(cmd, 1, 5) == "lang ") and strtrim(string.sub(cmd, 6)) or cmd
+        local map = {
+            en = "enUS", enus = "enUS", engb = "enUS",
+            ru = "ruRU", ruru = "ruRU",
+            de = "deDE", dede = "deDE",
+            fr = "frFR", frfr = "frFR",
+            es = "esES", eses = "esES", esmx = "esMX",
+            pt = "ptBR", ptbr = "ptBR",
+            it = "itIT", itit = "itIT",
+            ko = "koKR", kokr = "koKR",
+            zh = "zhCN", zhcn = "zhCN", cn = "zhCN",
+            tw = "zhTW", zhtw = "zhTW",
+            auto = "AUTO",
+        }
+        if arg ~= "lang" and map[arg] and addon.db and addon.db.settings then
+            addon.db.settings.language = map[arg]
+            print(addon:L("CHAT_LANG_SWITCHED"))
             if addon.ApplyLocaleToStaticUI then addon:ApplyLocaleToStaticUI() end
             if addon.RefreshUI then addon:RefreshUI() end
             return
