@@ -426,12 +426,12 @@ local ROLE_FILTERS = {
     },
     {
         id = "UNIQUE_LOOK",
-        short = ICON_STAR .. " Уникальные (1 моб / 3D)",
-        shortEN = ICON_STAR .. " Unique Looks (1 NPC / 3D)",
-        label = ICON_STAR .. " Уникальная модель / текстура (1 моб в игре)",
-        labelEN = ICON_STAR .. " Unique Model / Texture (Only 1 Beast in Game)",
-        desc = "Эксклюзивные расцветки и модели, которые во всём World of Warcraft носит только один-единственный зверь или которые не имеют перекрасок — идеальный выбор для элитных стойл!",
-        descEN = "Exclusive skins and 3D models worn by only a single creature in all of World of Warcraft or having zero recolors — the ultimate choice for filling your Hunter Stables!",
+        short = ICON_STAR .. " Уникальные (Эксклюзивы)",
+        shortEN = ICON_STAR .. " Unique Looks (Exclusives)",
+        label = ICON_STAR .. " Уникальная модель / текстура (244 эксклюзива)",
+        labelEN = ICON_STAR .. " Unique Model / Texture (244 Exclusives)",
+        desc = "Штучные эксклюзивы Азерота (без стадного треша и мобов-хамелеонов): 59 уникальных 3D-моделей без перекрасок + именные рарники, боссы, Духи зверя и квестовые звери с персональной шкуркой!",
+        descEN = "True one-of-a-kind exclusives (excluding common trash recolors and multi-color chameleons): 59 unique 3D models with zero recolors + named rares, bosses, Spirit Beasts, and quest beasts with a personal texture!",
     },
     {
         id = "UNIQUE_MODEL",

@@ -99,9 +99,17 @@ function addon:BuildIndices()
     end
 
     local modelGroupCounts = {}
+    local npcLookCounts = {}
     for _, beast in ipairs(self.Beasts or {}) do
         if beast.modelGroup and beast.modelGroup ~= "" then
             modelGroupCounts[beast.modelGroup] = (modelGroupCounts[beast.modelGroup] or 0) + 1
+        end
+        if beast.npcIDs then
+            for _, nid in ipairs(beast.npcIDs) do
+                npcLookCounts[nid] = (npcLookCounts[nid] or 0) + 1
+            end
+        elseif beast.npcID then
+            npcLookCounts[beast.npcID] = (npcLookCounts[beast.npcID] or 0) + 1
         end
     end
 
@@ -125,7 +133,9 @@ function addon:BuildIndices()
                 end
             end
         end
-        beast.isUniqueNpc = (nidCount == 1) or sameNamedNpc
+        local isNonCommon = (beast.rarity and beast.rarity ~= "COMMON") or (beast.questOnly == true)
+        local isNotChameleon = not beast.npcID or ((npcLookCounts[beast.npcID] or 1) == 1)
+        beast.isUniqueNpc = isNonCommon and isNotChameleon and ((nidCount == 1) or sameNamedNpc)
         beast.isUniqueLook = (beast.isUniqueModel or beast.isUniqueNpc)
         if self.ModelGroupRuNames and beast.modelGroup and self.ModelGroupRuNames[beast.modelGroup] then
             beast.ruModelGroup = self.ModelGroupRuNames[beast.modelGroup]
