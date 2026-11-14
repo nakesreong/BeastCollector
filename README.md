@@ -1,71 +1,64 @@
-# BeastCollector
+# BeastCollector — 3D Hunter Pet Wardrobe, 61-Family Encyclopedia, Taming Tomes & Multi-Hop Navigator
 
-**BeastCollector** is a World of Warcraft (Retail / Patch 12.0 Midnight) Hunter pet collection tracker, 3D model gallery, and taming encyclopedia inspired by the native Blizzard **Collections -> Appearances (`WardrobeCollectionFrame`)** interface.
+**Version:** 1.0.0  
+**Authors:** Gemini (Tiger) & Anya (5cr3am1ng5oul)  
+**Compatibility:** World of Warcraft: Retail / Midnight (`12.0.1`, `12.0.0`) & The War Within (`11.2.7`)  
+**Source Repository:** [https://github.com/nakesreong/BeastCollector](https://github.com/nakesreong/BeastCollector)  
+**License:** Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)
 
-It provides a complete visual catalog of all **61 Hunter Pet Families** and **2,635 unique tameable beast looks** indexed from **Petopia**, cross-referenced with official Blizzard DB2 tables (`CreatureFamily`, `Creature`, `UiMap`), `CreatureDisplayDB`, and `GiuiceHunterPets` spawn coordinates.
+***
 
----
+## Overview
 
-## Features
+**BeastCollector** is a complete 3D Hunter Pet Model Wardrobe, 61-Family Encyclopedia, Taming Tome Progression Tracker, and Multi-Hop Portal Route Navigator for World of Warcraft (*Midnight* `12.0+`). Modeled after Blizzard's Appearances Wardrobe (`WardrobeCollectionFrame`) with a sleek dark-gold UI, it gives Hunters a live 3D gallery of all **2,635 tameable beast looks** across all **61 pet families**, automatic stable & active-pet synchronization, open-world taming diagnostics, and an exclusive **Quest-Phase Beast Alert Radar**.
 
-- **Native Wardrobe-Style 3D Gallery (`6x3` Grid)**:
-  - Browse all **2,635 tameable looks** rendered as live, interactive `PlayerModel` cards using verified single-appearance `npcID`s (`SetCreature(npcID)`).
-  - Pre-warms upcoming page creature models asynchronously to prevent uncached blank frames.
-- **Complete 61-Family Circular Strip & Quick-Picker**:
-  - Top circular icon bar featuring official Blizzard `CreatureFamily` icons for all **61 families** (including Patch 12.0 *Midnight*'s new **Whiptail / Хлыстохвост** family).
-  - Scroll through families with the mouse wheel, `<` / `>` buttons, or open the **"Все 61" (`All 61`)** quick-picker grid popup.
-- **Role & Utility Filters**:
-  - Filter by **Exotic (`БМ — Экзотика`)**, **Bloodlust / Heroism (`БЛ / Героизм — Свирепость`)**, **Tank / Personal Defensive (`Танк / Сейв — Упорство`)**, **Magic + Enrage Dispel (`Диспел Магии + Исступления`)**, **Mortal Wounds (`Смертельные раны -50% хила`)**, **Spirit Beasts**, or **Special Taming Mechanics / Tomes**.
-- **Right-Side Inspector Dock (`Досье питомца`)**:
-  - Clicking any card opens a docked side inspector panel with a rotatable/zoomable 3D preview.
-  - Displays family specialization (`Ferocity`, `Tenacity`, `Cunning`), active/passive combat buffs, family utility ability, required **Taming Tome** unlock status (live check via `C_QuestLog.IsQuestFlaggedCompleted`), a list of tameable NPCs sharing that look, spawn zones, coordinates, and curated Russian taming guides for spirit beasts, secrets, and challenge tames.
-- **One-Click Navigation (`Проложить путь к зверю`)**:
-  - Sets both a native Blizzard World Map user waypoint (`C_Map.SetUserWaypoint` + supertracking arrow) and a **TomTom** arrow (`/way`) if TomTom is installed, and opens the World Map directly to the beast's zone.
-- **Automatic Stable & Active Pet Recognition**:
-  - Automatically scans your active pet (`UnitCreatureFamily`, `CreatureID`) and all stabled pets via `C_StableInfo.GetStablePetInfo` whenever you summon a pet or visit a Stable Master (`PET_STABLE_SHOW` / `PET_STABLE_UPDATE`).
-  - Matches stabled pets against all known `npcIDs` and `displayIDs` for each look, plus allows manual collection toggling (`Отметить своим` or `Shift + Left-Click` on any card).
+*   **3D Hunter Pet Model Wardrobe (`6x3` Grid + Interactive 3D Side Dossier):** Browse all **2,635 unique tameable beast looks** across **61 Hunter Pet families** (`HunterPetsDB-1.0`) with live 3D creature rendering (`PlayerModel`), zoom/rotate controls, and instant search by beast name, zone, family, combat trait, or taming tome.
+*   **Complete 11 Taming Tomes & Manuals Tracker (`Tomes (11)` Tab):** Tracks all **11 special Taming Tomes & Manuals** (*Trials of the Florafaun Hunter*, *Simple Tome of Bone-Binding*, *Ancient Tome of Dinomancy*, *Tome of the Hybrid Beast*, *Blood-Soaked Tome of Dark Whispers*, *How to School Your Serpent*, *Mecha-Bond Imprint Matrix*, *Gargon Training Manual*, *How to Train a Dragonkin*, *Ottuk Taming*, and *Cinder of Companionship*) using server-verified quest/achievement flags (`C_QuestLog.IsQuestFlaggedCompleted`), innate racial passives, drop chances, expected kill counts, and a live **Attempt Counter & Cumulative Luck Engine** (`1 - (1 - p)^K`).
+*   **Quest-Phase Exclusive Beast Alert Radar & Open-World Unit Tooltips:** Automatically warns you with a movable **Quest-Exclusive Popup Alert Banner** (`BeastCollectorAlertFrame` + sound alert) and unit tooltip warning whenever you encounter an uncollected **Quest-Phase Exclusive beast** (such as the 4 spectral-orange *Paint-Crazed* beasts in Harandar, *Shadow of Dambala*, *Iron War Rylak*, *Death Skitterer*, etc.) that can **only** be tamed before turning in a quest!
+*   **Open-World Unit Tooltip Diagnostics (Patch 12.0 Secret-Value Safe):** Hovering over any tameable beast in the world displays its family, specialization (`Ferocity`, `Cunning`, `Tenacity`), active/passive combat abilities, whether its look is already in your stables, and exact reasons why a beast cannot be tamed right now (missing *Beast Mastery* spec for Exotic families, creature level higher than player level, or unlearned Taming Tome).
+*   **Multi-Hop Portal & Zone-Exit Route Navigator:** Clicking **Plot Route to Beast / Tome** builds an automatic step-by-step portal chain from isolated zones (*Harandar / The Den*, *Silvermoon City*, *Voidstorm*, *Emerald Dream*, *Dornogal*, *Valdrakken*, *Oribos*, *Boralus / Dazar'alor*, *Stormwind / Orgrimmar*) to your target's exact spawn coordinates using Blizzard's native 3D SuperTrack diamond pin (`C_Map.SetUserWaypoint` + `C_SuperTrack`) and **TomTom**.
+*   **Live Stable Sync & Abandon Reconciliation:** Automatically scans your active pet and all **205 Hunter Stable slots** (`C_StableInfo.GetStablePetInfo`), updating your collected looks immediately—even when you release a pet into the wild (`PetAbandon`).
+*   **Bilingual Localization (`enUS` & `ruRU`) with Instant Hot-Swap:** Automatically detects your WoW client language (`GetLocale()`) and includes a `[RU]` / `[EN]` toggle button right in the window header to switch the entire interface and database between English and Russian on the fly without `/reload`.
 
----
+***
 
-## Slash Commands
+## Core Features & Interface Tabs
 
-- `/bc` or `/beastcollector` — Toggle the main **BeastCollector** window.
-- `/bc lang` (or `/bc en` / `/bc ru`) — Instantly switch UI and database language between **English (`enUS`)** and **Russian (`ruRU`)** without `/reload` (or click the **`[EN]` / `[RU]`** button in the top-right header).
-- `/bc scan` — Force a manual scan of your active Hunter pet and Stable slots.
-- `/bc minimap` — Toggle the minimap button (`LibDBIcon-1.0`).
+### 1. 3D Pet Wardrobe & 61-Family Encyclopedia (`/bc`)
 
----
+1.  **All Models & Uncollected Tabs:** View all 2,635 tameable looks or filter down to looks missing from your Hunter Stables.
+2.  **Specialization Bar (`Ferocity`, `Cunning`, `Tenacity`) & Family Dropdowns:** Filter by pet specialization or pick any of the **61 families** from categorized dropdown menus with full ability tooltips.
+3.  **Combat Traits & Abilities Filter (`Traits & Abilities [v]`):** One-click filtering by combat utility:
+    *   *Bloodlust / Heroism (+10% Leech)*
+    *   *Survival of the Fittest (-20% DR & +5% HP)*
+    *   *Master's Call & +8% Move Speed*
+    *   *Dispel Magic & Enrage*
+    *   *Mortal Wounds (-50% Healing)*
+    *   *Tank Shield (-50% Pet Damage Taken)*
+    *   *Slow Target (-50% Move Speed)*
+    *   *Pet Dodge +30% / Prowl*
+    *   *Spirit Mend (Spirit Beast Heal)*
+    *   *Exotic Families (BM Only)*
+    *   *Requires Taming Tome / Item*
+    *   *Rare Spawns / Spirit Beasts / Secrets*
+    *   *Quest-Phase Exclusives (Tame before turn-in!)*
+4.  **Interactive Side Dossier (`Beast Dossier` / `Tome Dossier`):** Displays a large rotatable/zoomable 3D preview, collection status, rarity badge (*Spirit Beast*, *Secret*, *Boss*, *Rare Spawn*, *Common*), family skills, required tome status, spawn coordinates, list of all tameable NPCs sharing that look, and detailed taming mechanics.
 
-## Project Structure
+### 2. Taming Tomes & Manuals (`Tomes (11)` Tab)
 
-```text
-BeastCollector/
-├── BeastCollector.toc                     # Addon manifest (Interface: 120001, 120000, 110207)
-├── BeastDB.lua                            # Specialization definitions, Taming Tomes, and HunterPetsDB-1.0 bridge
-├── Core.lua                               # Stable scanner, tome quest checks, waypoints, unit tooltips, LDB
-├── UI.lua                                 # Wardrobe-style 3D model gallery, 61-family bar, and side dock
-├── DOCS_DATABASE_PIPELINE.md              # Documentation for updating HunterPetsDB-1.0 on new WoW patches
-├── Libs/
-│   ├── LibStub/                           # Library stub loader
-│   ├── CallbackHandler-1.0/               # Event callback handler
-│   ├── LibDataBroker-1.1/                 # DataBroker feed for minimap/bar integration
-│   ├── LibDBIcon-1.0/                     # Minimap icon library
-│   └── HunterPetsDB-1.0/
-│       └── HunterPetsDB-1.0.lua           # Auto-generated LibStub database (61 families, 2,635 looks)
-└── tools/
-    └── build_database.py                  # Automated Python pipeline to fetch & rebuild HunterPetsDB-1.0
-```
+*   Displays all **11 Taming Tomes** with live 3D previews of their signature beasts.
+*   Clearly badges **Account-Wide (`Acct`)** vs **Character-Specific (`Char`)** unlock scope and how many models each tome unlocks (`Beasts (N)` button filters the wardrobe directly to that tome's beasts).
+*   Tracks your personal kill attempts and cumulative drop luck (`1 - (1 - p)^K`) on drop-based tomes (*Ancient Tome of Dinomancy* from Zandalari Dinomancers, *Simple Tome of Bone-Binding* in Maldraxxus, *Blood-Soaked Tome of Dark Whispers* from Zul in Uldir, *Gargon Training Manual* from Huntmaster Petrus, and *Trials of the Florafaun Hunter* in Harandar).
 
----
+***
 
-## Updating the Database
+## Slash Commands & Controls
 
-All 61 families and 2,635 tameable looks are stored in the embedded `LibStub` library [`Libs/HunterPetsDB-1.0/HunterPetsDB-1.0.lua`](Libs/HunterPetsDB-1.0/HunterPetsDB-1.0.lua), which is generated by [`tools/build_database.py`](tools/build_database.py).
-
-To fetch fresh upstream data from **Petopia**, **Wago.tools DB2**, **CreatureDisplayDB**, and **GiuiceHunterPets** and regenerate the library after a WoW patch:
-
-```bash
-python tools/build_database.py --fetch
-```
-
-See **[`DOCS_DATABASE_PIPELINE.md`](DOCS_DATABASE_PIPELINE.md)** for full architectural documentation of the data pipeline.
+*   `/bc` or `/beastcollector` — Toggle the main **BeastCollector** window.
+*   `/bc lang` (or `/bc en`, `/bc ru`, `/bc auto`) — Instantly toggle interface language between **English (`enUS`)** and **Russian (`ruRU`)** without reloading UI.
+*   `/bc scan` — Force a manual scan of your Hunter Stables and active pet.
+*   `/bc testalert` — Preview the **Quest-Exclusive Beast Alert Banner** at the top of the screen.
+*   `/bc minimap` or `/bc mm` — Show or hide the round minimap button.
+*   **Left-Click (Minimap Button):** Open or close **BeastCollector**.
+*   **Right-Click (Minimap Button):** Open **BeastCollector** filtered to **Uncollected** models.
+*   **Shift + Right-Click (Minimap Button):** Cycle between 5 Hunter minimap button icons (*Tame Beast*, *Spirit Beast*, *Call Pet*, *Beast Mastery*, *Track Beasts*).

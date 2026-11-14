@@ -5,5 +5,9 @@ ignore:
   - .github
   - .gitignore
   - tools
+  - Screenshots
+  - logo.png
+  - logo.jpg
+  - README.md
   - DOCS_DATABASE_PIPELINE.md
   - BeastCollector_v1.0.0_CurseForge.zip
