@@ -1,10 +1,20 @@
-## Interface: 120001, 110207, 110105
+## Interface: 120107, 120105, 120001, 110207
 ## Title: |cff00ff96Beast|r|cffffaa00Collector|r
-## Notes: 3D Hunter Pet Model Wardrobe, 61-Family Encyclopedia, Taming Tomes Tracker & Portal Route Navigator (2,635 looks)
-## Notes-ruRU: Коллекция 3D-моделей приручаемых зверей охотника в стиле Гардероба (61 семейство, 2635 моделей, фолианты, способности, координаты и навигация)
-## Author: Anya & Tiger
-## Version: 1.0.0
+## Notes: 3D Hunter Pet Model Wardrobe, 61-Family Encyclopedia, Taming Tomes Tracker, Quest-Exclusive Radar & Portal Route Navigator (2,635 looks)
+## Notes-ruRU: Коллекция 3D-моделей зверей охотника в стиле Гардероба (61 семейство, 2635 моделей, фолианты, радар эксклюзивов квестов, тултипы и навигация)
+## Notes-deDE: 3D-Jägerbegleiter-Kleiderschrank, 61-Familien-Enzyklopädie, Zähmungsfolianten-Tracker, Quest-Exklusiv-Radar & Portalrouten-Navigator (2.635 Modelle)
+## Notes-frFR: Garde-robe 3D des familiers du chasseur, encyclopédie des 61 familles, suivi des tomes de domptage, radar d'exclusivités de quête et navigateur de portails
+## Notes-esES: Armario 3D de mascotas de cazador, enciclopedia de 61 familias, seguimiento de tomos de doma, radar de exclusivos de misión y navegador de portales
+## Notes-esMX: Armario 3D de mascotas de cazador, enciclopedia de 61 familias, seguimiento de tomos de doma, radar de exclusivos de misión y navegador de portales
+## Notes-itIT: Guardaroba 3D dei famigli del cacciatore, enciclopedia delle 61 famiglie, tracciamento tomi, radar esclusive missione e navigatore portali
+## Notes-ptBR: Guarda-roupa 3D de ajudantes de caçador, enciclopédia de 61 famílias, rastreador de tomos de domar, radar de exclusivos de missão e navegador de portais
+## Notes-koKR: 3D 사냥꾼 야수 외형 옷장, 61종 야수 가족 백과사전, 길들이기 고서 추적기, 퀘스트 한정 레이더 및 포탈 경로 내비게이터 (2,635종 외형)
+## Notes-zhCN: 3D 猎人宠物外观衣柜、61 家族百科全书、驯服典籍追踪器、任务限定野兽雷达与跨区传送门导航 (2,635 种外观)
+## Notes-zhTW: 3D 獵人寵物外觀衣櫃、61 家族百科全書、馴服典籍追蹤器、任務限定野獸雷達與跨區傳送門導航 (2,635 種外觀)
+## Author: Gemini (Tiger) | QA & Vision: Anya (5cr3am1ng5oul)
+## Version: 1.1.0
 ## SavedVariables: BeastCollectorDB
+## OptionalDeps: TomTom, ElvUI
 ## IconTexture: Interface\ICONS\Ability_Hunter_BeastMastery
 ## X-Curse-Project-ID: 1805179
 

@@ -98,9 +98,45 @@ function addon:BuildIndices()
         self.FamilyByID[fam.id] = fam
     end
 
+    local modelGroupCounts = {}
+    local npcLookCounts = {}
+    for _, beast in ipairs(self.Beasts or {}) do
+        if beast.modelGroup and beast.modelGroup ~= "" then
+            modelGroupCounts[beast.modelGroup] = (modelGroupCounts[beast.modelGroup] or 0) + 1
+        end
+        if beast.npcIDs then
+            for _, nid in ipairs(beast.npcIDs) do
+                npcLookCounts[nid] = (npcLookCounts[nid] or 0) + 1
+            end
+        elseif beast.npcID then
+            npcLookCounts[beast.npcID] = (npcLookCounts[beast.npcID] or 0) + 1
+        end
+    end
+
     for idx, beast in ipairs(self.Beasts or {}) do
         beast.order = idx
         self.BeastByID[beast.id] = beast
+        beast.modelGroupCount = (beast.modelGroup and modelGroupCounts[beast.modelGroup]) or 1
+        beast.isUniqueModel = (beast.modelGroupCount == 1)
+
+        local nidCount = beast.npcIDs and #beast.npcIDs or 0
+        local sameNamedNpc = false
+        if nidCount > 1 and nidCount <= 4 and beast.npcs and #beast.npcs > 1 then
+            local firstEN = beast.npcs[1].nameEN
+            if firstEN and firstEN ~= "" then
+                sameNamedNpc = true
+                for i = 2, #beast.npcs do
+                    if beast.npcs[i].nameEN ~= firstEN then
+                        sameNamedNpc = false
+                        break
+                    end
+                end
+            end
+        end
+        local isNonCommon = (beast.rarity and beast.rarity ~= "COMMON") or (beast.questOnly == true)
+        local isNotChameleon = not beast.npcID or ((npcLookCounts[beast.npcID] or 1) == 1)
+        beast.isUniqueNpc = isNonCommon and isNotChameleon and ((nidCount == 1) or sameNamedNpc)
+        beast.isUniqueLook = (beast.isUniqueModel or beast.isUniqueNpc)
         if self.ModelGroupRuNames and beast.modelGroup and self.ModelGroupRuNames[beast.modelGroup] then
             beast.ruModelGroup = self.ModelGroupRuNames[beast.modelGroup]
             if beast.subTitle and not string.find(beast.subTitle, beast.ruModelGroup, 1, true) then
@@ -1350,6 +1386,14 @@ function addon:InitTooltips()
         )
         if fam and self:GetFamilySkill(fam) ~= "" then
             tooltip:AddLine("   |cffffd100" .. (isEN and "Ability:" or "Умеет:") .. "|r " .. self:GetFamilySkill(fam), 0.9, 0.9, 0.9, true)
+        end
+
+        if beast.isUniqueModel and beast.isUniqueNpc then
+            tooltip:AddLine(self:L("UNIT_TT_UNIQUE_BOTH"), 1.0, 0.55, 1.0, true)
+        elseif beast.isUniqueModel then
+            tooltip:AddLine(self:L("UNIT_TT_UNIQUE_MODEL"), 1.0, 0.55, 1.0, true)
+        elseif beast.isUniqueNpc then
+            tooltip:AddLine(self:L("UNIT_TT_UNIQUE_SKIN"), 0.85, 0.65, 1.0, true)
         end
 
         -- Проверка: почему зверь может не приручаться прямо сейчас (БМ-спек / уровень моба / фолиант)

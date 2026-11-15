@@ -1,8 +1,8 @@
 # BeastCollector — 3D Hunter Pet Wardrobe, 61-Family Encyclopedia, Taming Tomes & Multi-Hop Navigator
 
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Authors:** Gemini (Tiger) & Anya (5cr3am1ng5oul)  
-**Compatibility:** World of Warcraft: Retail / Midnight (`12.0.1`, `12.0.0`) & The War Within (`11.2.7`)  
+**Compatibility:** World of Warcraft: Retail / Midnight (`12.1.7`, `12.1.5`, `12.0.1`) & The War Within (`11.2.7`)  
 **Source Repository:** [https://github.com/nakesreong/BeastCollector](https://github.com/nakesreong/BeastCollector)  
 **License:** Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)
 
