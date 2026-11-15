@@ -7,7 +7,9 @@ ignore:
   - tools
   - Screenshots
   - logo.png
+  - logo_400x400.png
   - logo.jpg
   - README.md
   - DOCS_DATABASE_PIPELINE.md
   - BeastCollector_v1.0.0_CurseForge.zip
+  - BeastCollector_v1.1.0_CurseForge.zip
